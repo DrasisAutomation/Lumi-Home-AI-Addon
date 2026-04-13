@@ -949,38 +949,87 @@ function speakText(txt){
 /* ══════════════════════════════════════
    VOICE
 ══════════════════════════════════════ */
-let voiceRec=null;
+let voiceRec=null, mediaRecorder=null, audioChunks=[];
+let isVoiceCancelled = false;
 
-function startVoice(){
-  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){toast('Voice not supported');return;}
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  voiceRec=new SR();voiceRec.lang='en-US';voiceRec.interimResults=true;voiceRec.continuous=false;
+async function startVoice(){
   document.getElementById('voice-ov').classList.add('open');
-  document.getElementById('voice-interim').textContent='';
-  voiceRec.onresult=e=>{
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    document.getElementById('voice-interim').textContent=interim||final;
-    if(final){
-      const id=chatOn?'cmd2':'cmd';
-      document.getElementById(id).value=final;
-      closeVoice();send(chatOn);
-    }
-  };
-  voiceRec.onerror=()=>closeVoice();voiceRec.onend=()=>closeVoice();
-  try { voiceRec.start(); } catch(e) { toast('Mic blocked: ' + e.message); closeVoice(); }
+  document.getElementById('voice-interim').innerHTML='Listening...';
+  isVoiceCancelled = false;
+  
+  if('webkitSpeechRecognition'in window || 'SpeechRecognition'in window){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    voiceRec=new SR();voiceRec.lang='en-US';voiceRec.interimResults=true;voiceRec.continuous=false;
+    voiceRec.onresult=e=>{
+      let interim='',final='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+        else interim+=e.results[i][0].transcript;
+      }
+      document.getElementById('voice-interim').textContent=interim||final;
+      if(final){
+        const id=chatOn?'cmd2':'cmd';
+        document.getElementById(id).value=final;
+        closeVoice();send(chatOn);
+      }
+    };
+    voiceRec.onerror=()=>closeVoice();voiceRec.onend=()=>closeVoice();
+    try { voiceRec.start(); return; } catch(e) {}
+  }
+  
+  // Whisper Fallback via WebRTC
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    const mediaMime = mediaRecorder.mimeType || 'audio/webm';
+    const ext = mediaMime.includes('mp4') || mediaMime.includes('aac') ? 'm4a' : 'webm';
+    
+    document.getElementById('voice-interim').innerHTML='Listening...<br><span style="opacity:0.7;font-size:12px;margin-top:4px;display:block">Tap mic again to send</span>';
+    
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (isVoiceCancelled) { closeVoice(); return; }
+      
+      document.getElementById('voice-interim').textContent='Thinking...';
+      const audioBlob = new Blob(audioChunks, { type: mediaMime });
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+         const base64data = reader.result.split(',')[1];
+         try {
+           const r = await fetch(`${API_BASE}/api/transcribe`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ audioBase64: base64data, ext })
+           });
+           const ans = await r.json();
+           if (ans.error) throw new Error(ans.error);
+           const final = ans.text.trim();
+           if (final) {
+             const id=chatOn?'cmd2':'cmd';
+             document.getElementById(id).value=final;
+             send(chatOn);
+           }
+         } catch(err) { toast('Voice error: ' + err.message); }
+         closeVoice();
+      };
+    };
+    mediaRecorder.start();
+  } catch(e) {
+    toast('Microphone access denied or unsupported');
+    closeVoice();
+  }
 }
-
 function cancelVoice() {
-  if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  closeVoice();
+  isVoiceCancelled = true;
+  stopVoice();
 }
-
 function stopVoice(){
-  cancelVoice();
+  if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
+  if(mediaRecorder && mediaRecorder.state !== "inactive") { mediaRecorder.stop(); mediaRecorder=null; }
+  else closeVoice();
 }
 function closeVoice(){
   document.getElementById('voice-ov').classList.remove('open');
