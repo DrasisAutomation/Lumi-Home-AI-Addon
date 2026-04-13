@@ -953,7 +953,9 @@ let voiceRec=null, mediaRecorder=null, audioChunks=[];
 let isVoiceCancelled = false;
 
 async function startVoice(){
-  if('webkitSpeechRecognition'in window || 'SpeechRecognition'in window){
+  const isCompanionApp = /home.?assistant/i.test(navigator.userAgent);
+
+  if(!isCompanionApp && ('webkitSpeechRecognition'in window || 'SpeechRecognition'in window)){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     voiceRec=new SR();voiceRec.lang='en-US';voiceRec.interimResults=true;voiceRec.continuous=false;
     
@@ -985,7 +987,9 @@ async function startVoice(){
      nv.accept = 'audio/*';
      nv.capture = 'microphone';
      nv.id = 'native-voice';
-     nv.style.display = 'none';
+     nv.style.position = 'absolute';
+     nv.style.left = '-9999px';
+     nv.style.opacity = '0';
      document.body.appendChild(nv);
      
      nv.addEventListener('change', async e => {
