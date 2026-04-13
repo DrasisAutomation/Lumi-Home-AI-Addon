@@ -7,7 +7,7 @@ const DIR = __dirname;
 const PORT = process.env.PORT || 8099;
 
 const HA_URL = "http://supervisor/core/api";
-const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
+const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
 console.log("TOKEN:", HA_TOKEN ? "EXISTS" : "MISSING");
 const OAI_KEY = "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";
 const OAI_MODEL = "gpt-4o-mini";
@@ -444,6 +444,11 @@ const server = http.createServer(async (req, res) => {
       const r = await fetch(`${HA_URL}/states`, {
         headers: { 'Authorization': `Bearer ${HA_TOKEN}`, 'Content-Type': 'application/json' }
       });
+      if (!r.ok) {
+        const errText = await r.text();
+        res.writeHead(r.status, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: `HA Error ${r.status}: ${errText}` }));
+      }
       const data = await r.json();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ result: data }));

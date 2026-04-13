@@ -639,6 +639,14 @@ async function loadEnt(){
   try{
     const r = await fetch('./api/states');
     const d = await r.json();
+    if (d.error) {
+       document.getElementById('dlg-ent-list').innerHTML = `<div style="padding:16px;color:var(--red);text-align:center">${esc(d.error)}</div>`;
+       return;
+    }
+    if (!Array.isArray(d.result)) {
+       document.getElementById('dlg-ent-list').innerHTML = `<div style="padding:16px;color:var(--red);text-align:center">Invalid HA Response: ${esc(JSON.stringify(d.result))}</div>`;
+       return;
+    }
     ENTITIES=(d.result||[]).map(s=>({
       entity_id:s.entity_id,domain:s.entity_id.split('.')[0],
       state:s.state,name:s.attributes?.friendly_name||s.entity_id,
