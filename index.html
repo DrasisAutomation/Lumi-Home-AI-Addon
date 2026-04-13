@@ -953,13 +953,13 @@ let voiceRec=null, mediaRecorder=null, audioChunks=[];
 let isVoiceCancelled = false;
 
 async function startVoice(){
-  document.getElementById('voice-ov').classList.add('open');
-  document.getElementById('voice-interim').innerHTML='Listening...';
-  isVoiceCancelled = false;
-  
   if('webkitSpeechRecognition'in window || 'SpeechRecognition'in window){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     voiceRec=new SR();voiceRec.lang='en-US';voiceRec.interimResults=true;voiceRec.continuous=false;
+    
+    document.getElementById('voice-ov').classList.add('open');
+    document.getElementById('voice-interim').innerHTML='Listening...';
+    
     voiceRec.onresult=e=>{
       let interim='',final='';
       for(let i=e.resultIndex;i<e.results.length;i++){
@@ -977,68 +977,59 @@ async function startVoice(){
     try { voiceRec.start(); return; } catch(e) {}
   }
   
-  // Whisper Fallback via WebRTC
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    const useWebm = typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('audio/webm');
-    const ext = useWebm ? 'webm' : 'm4a';
-    const finalMime = useWebm ? 'audio/webm' : 'audio/mp4';
-    
-    document.getElementById('voice-interim').innerHTML='Listening...<br><span style="opacity:0.7;font-size:12px;margin-top:4px;display:block">Talk, then tap mic again to send!</span>';
-    
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      if (isVoiceCancelled) { closeVoice(); return; }
-      
-      document.getElementById('voice-interim').textContent='Thinking...';
-      const audioBlob = new Blob(audioChunks, { type: finalMime });
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-         const base64data = reader.result.split(',')[1];
-         try {
-           const r = await fetch(`${API_BASE}/api/transcribe`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ audioBase64: base64data, ext })
-           });
-           const ans = await r.json();
-           if (ans.error) throw new Error(ans.error);
-           const final = ans.text.trim();
-           if (final) {
-             const id=chatOn?'cmd2':'cmd';
-             document.getElementById(id).value=final;
-             send(chatOn);
-           }
-         } catch(err) { toast('Voice error: ' + err.message); }
-         closeVoice();
-      };
-    };
-    mediaRecorder.start();
-  } catch(e) {
-    toast('Microphone access denied or unsupported');
-    closeVoice();
+  // NATIVE OS CAPTURE FALLBACK (Forced OS-level Microphone)
+  let nv = document.getElementById('native-voice');
+  if(!nv) {
+     nv = document.createElement('input');
+     nv.type = 'file';
+     nv.accept = 'audio/*';
+     nv.capture = 'microphone';
+     nv.id = 'native-voice';
+     nv.style.display = 'none';
+     document.body.appendChild(nv);
+     
+     nv.addEventListener('change', async e => {
+       const file = e.target.files[0];
+       if(!file) return;
+       
+       document.getElementById('voice-ov').classList.add('open');
+       document.getElementById('voice-interim').innerHTML='Thinking...';
+       
+       const reader = new FileReader();
+       reader.readAsDataURL(file);
+       reader.onloadend = async () => {
+          const base64data = reader.result.split(',')[1];
+          // Use m4a as safest mobile container decoding for OpenAI Whisper
+          const ext = file.name.split('.').pop() || 'm4a'; 
+          try {
+            const r = await fetch(`${API_BASE}/api/transcribe`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioBase64: base64data, ext })
+            });
+            const ans = await r.json();
+            if(ans.error) throw new Error(ans.error);
+            const final = ans.text.trim();
+            if(final){
+              const id=chatOn?'cmd2':'cmd';
+              document.getElementById(id).value=final;
+              send(chatOn);
+            }
+          } catch(err) { toast('Voice error: ' + err.message); }
+          closeVoice();
+       };
+       nv.value = ''; // Reset
+     });
   }
+  nv.click();
 }
 function cancelVoice() {
-  isVoiceCancelled = true;
   if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  if(mediaRecorder && mediaRecorder.state !== "inactive") { 
-    try { mediaRecorder.stop(); } catch(e) {}
-    mediaRecorder=null; 
-  }
   closeVoice();
 }
 function stopVoice(){
   if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  if(mediaRecorder && mediaRecorder.state !== "inactive") { 
-    try { mediaRecorder.stop(); } catch(e) {}
-  } else {
-    closeVoice();
-  }
+  closeVoice();
 }
 function closeVoice(){
   document.getElementById('voice-ov').classList.remove('open');
