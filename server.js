@@ -689,9 +689,10 @@ const server = http.createServer(async (req, res) => {
     let body = ''; req.on('data', c => body += c);
     req.on('end', async () => {
       try {
-        const { audioBase64 } = JSON.parse(body);
+        const { audioBase64, ext } = JSON.parse(body);
+        const format = ext || 'webm';
         const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n`;
+        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
         const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
         const payload = Buffer.concat([
           Buffer.from(pre, 'utf8'),
