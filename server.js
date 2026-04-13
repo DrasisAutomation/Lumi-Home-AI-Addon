@@ -693,7 +693,13 @@ const server = http.createServer(async (req, res) => {
     const data = fs.readFileSync(fp);
     const ext  = path.extname(fp);
     const ct   = MIME[ext] || 'text/plain';
-    res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 
+      'Content-Type': ct, 
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
     res.end(data);
   } catch (_) { res.writeHead(404); res.end('Not found'); }
 });
