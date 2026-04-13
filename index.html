@@ -981,19 +981,20 @@ async function startVoice(){
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
-    const mediaMime = mediaRecorder.mimeType || 'audio/webm';
-    const ext = mediaMime.includes('mp4') || mediaMime.includes('aac') ? 'm4a' : 'webm';
+    const useWebm = typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('audio/webm');
+    const ext = useWebm ? 'webm' : 'm4a';
+    const finalMime = useWebm ? 'audio/webm' : 'audio/mp4';
     
-    document.getElementById('voice-interim').innerHTML='Listening...<br><span style="opacity:0.7;font-size:12px;margin-top:4px;display:block">Tap mic again to send</span>';
+    document.getElementById('voice-interim').innerHTML='Listening...<br><span style="opacity:0.7;font-size:12px;margin-top:4px;display:block">Talk, then tap mic again to send!</span>';
     
     audioChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
       if (isVoiceCancelled) { closeVoice(); return; }
       
       document.getElementById('voice-interim').textContent='Thinking...';
-      const audioBlob = new Blob(audioChunks, { type: mediaMime });
+      const audioBlob = new Blob(audioChunks, { type: finalMime });
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
