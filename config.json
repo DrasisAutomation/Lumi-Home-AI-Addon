@@ -1,0 +1,14 @@
+{
+  "aiEnabledDevices": [
+    "switch.pantry_r5",
+    "switch.pantry_r2_2",
+    "light.rgbw_1",
+    "climate.air_conditioner",
+    "switch.home_theater_ac_off",
+    "switch.home_theater_ac_on",
+    "light.round_fitting_light",
+    "lock.m302_b6e10c_2",
+    "switch.showroom_room_ac_24_new_fw",
+    "switch.showroom_room_ac_26_new_fw"
+  ]
+}

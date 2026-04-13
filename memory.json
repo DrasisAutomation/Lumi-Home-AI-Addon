@@ -1,0 +1,14 @@
+{
+  "rooms": {
+    "showroom": {
+      "lights": [
+        "light.round_fitting_light"
+      ],
+      "ac": {
+        "off": "switch.showroom_room_ac_24_new_fw",
+        "on": "switch.showroom_room_ac_26_new_fw"
+      },
+      "devices": []
+    }
+  }
+}
