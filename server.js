@@ -696,5 +696,5 @@ function replyJSON(res, obj) {
 }
 
 server.listen(PORT, () => {
-  console.log(`Lumi Home AI Backend running at http://localhost:${PORT}`);
+  console.log(`Lumi Demo AI Backend running at http://localhost:${PORT}`);
 });
