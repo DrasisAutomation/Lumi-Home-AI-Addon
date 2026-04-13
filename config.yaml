@@ -1,6 +1,6 @@
 name: "Lumi Demo AI"
 description: "Premium smart home assistant powered by AI"
-version: "2.8.0"
+version: "2.9.0"
 slug: "lumi_demo_ai"
 init: false
 arch:
