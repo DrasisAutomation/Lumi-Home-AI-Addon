@@ -617,7 +617,7 @@ async function saveConfig(){
   const payload={aiEnabledDevices:[...SELECTED]};
   let savedToFile=false;
   try{
-    const r=await fetch('/save-config',{
+    const r=await fetch('./save-config',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
@@ -637,7 +637,7 @@ function setDot(c,l){document.getElementById('dot').className=c;document.getElem
 async function loadEnt(){
   setDot('ok','Connected'); // Managed by Ingress
   try{
-    const r = await fetch('/api/states');
+    const r = await fetch('./api/states');
     const d = await r.json();
     ENTITIES=(d.result||[]).map(s=>({
       entity_id:s.entity_id,domain:s.entity_id.split('.')[0],
@@ -705,7 +705,7 @@ async function openLogsDlg() {
   const el = document.getElementById('logs-list');
   el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
   try {
-    const r = await fetch('/api/history');
+    const r = await fetch('./api/history');
     const s = await r.json();
     if (!s.length) {
       el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No logs found.</div>';
@@ -731,7 +731,7 @@ async function openLogsDlg() {
 async function delSched(id) {
   try {
     document.getElementById('sched-list').innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Deleting...</div>';
-    await fetch('/api/schedule?id=' + id, { method: 'DELETE' });
+    await fetch('./api/schedule?id=' + id, { method: 'DELETE' });
     openSchedDlg();
   } catch (e) {
     console.error(e);
@@ -743,7 +743,7 @@ async function openSchedDlg() {
   const el = document.getElementById('sched-list');
   el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
   try {
-    const r = await fetch('/api/schedule');
+    const r = await fetch('./api/schedule');
     const s = await r.json();
     if (!s.length) {
       el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No scheduled actions.</div>';
@@ -856,7 +856,7 @@ async function send(fromBottom){
       ? ENTITIES.filter(e => SELECTED.has(e.entity_id)) 
       : ENTITIES.filter(e => ['light','switch','cover','fan','input_boolean','scene','media_player','climate'].includes(e.domain)).slice(0, 50);
 
-    const r = await fetch('/api/chat', {
+    const r = await fetch('./api/chat', {
        method: 'POST',
        headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify({ text: txt, entities: reqEntities })
