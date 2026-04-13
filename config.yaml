@@ -16,6 +16,8 @@ panel_title: "Lumi Home Ai"
 panel_admin: false
 ingress: true
 ingress_port: 8099
+ports:
+  8099/tcp: 8099
 homeassistant_api: true
 map:
   - config:rw
