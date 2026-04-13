@@ -685,38 +685,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/transcribe') {
-    let body = ''; req.on('data', c => body += c);
-    req.on('end', async () => {
-      try {
-        const { audioBase64, ext } = JSON.parse(body);
-        const format = ext || 'webm';
-        const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
-        const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
-        const payload = Buffer.concat([
-          Buffer.from(pre, 'utf8'),
-          Buffer.from(audioBase64, 'base64'),
-          Buffer.from(post, 'utf8')
-        ]);
-        const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            'Authorization': `Bearer ${OAI_KEY}`
-          },
-          body: payload
-        });
-        const ans = await r.json();
-        if (ans.error) throw new Error(ans.error.message);
-        return replyJSON(res, { text: ans.text || "" });
-      } catch (e) {
-        return replyJSON(res, { error: e.message });
-      }
-    });
-    return;
-  }
-
   // Serving static files
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/') urlPath = '/index.html';
