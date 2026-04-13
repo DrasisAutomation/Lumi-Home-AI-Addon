@@ -919,7 +919,7 @@ loadTTSVoice();
 
 function toggleSpeak(){
   ttsEnabled=!ttsEnabled;
-  if(!ttsEnabled) window.speechSynthesis.cancel(); // stop any playing
+  if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel(); // stop any playing
   // Sync both buttons (hero + bottom)
   ['btn-spk','btn-spk2'].forEach(id=>{
     const b=document.getElementById(id);
@@ -929,7 +929,7 @@ function toggleSpeak(){
     b.setAttribute('aria-label',ttsEnabled?'Read aloud (on)':'Read aloud (off)');
     // Swap icon
     b.innerHTML=ttsEnabled?'<i data-lucide="volume-2"></i>':'<i data-lucide="volume-x"></i>';
-    lucide.createIcons({nodes:b.querySelectorAll('[data-lucide]')});
+    if(window.lucide) lucide.createIcons({nodes:b.querySelectorAll('[data-lucide]')});
   });
   toast(ttsEnabled?'Speak mode on':'Speak mode off');
 }
@@ -1025,12 +1025,20 @@ async function startVoice(){
 }
 function cancelVoice() {
   isVoiceCancelled = true;
-  stopVoice();
+  if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
+  if(mediaRecorder && mediaRecorder.state !== "inactive") { 
+    try { mediaRecorder.stop(); } catch(e) {}
+    mediaRecorder=null; 
+  }
+  closeVoice();
 }
 function stopVoice(){
   if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  if(mediaRecorder && mediaRecorder.state !== "inactive") { mediaRecorder.stop(); mediaRecorder=null; }
-  else closeVoice();
+  if(mediaRecorder && mediaRecorder.state !== "inactive") { 
+    try { mediaRecorder.stop(); } catch(e) {}
+  } else {
+    closeVoice();
+  }
 }
 function closeVoice(){
   document.getElementById('voice-ov').classList.remove('open');
