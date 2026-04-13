@@ -1,7 +1,7 @@
-name: "Lumi Home AI"
+name: "Lumi Demo AI"
 description: "Premium smart home assistant powered by AI"
 version: "1.0.0"
-slug: "lumi_home_ai"
+slug: "lumi_demo_ai"
 init: false
 arch:
   - aarch64
@@ -12,7 +12,7 @@ arch:
 startup: application
 boot: auto
 panel_icon: mdi:robot-outline
-panel_title: "Lumi AI"
+panel_title: "Lumi Home Ai"
 panel_admin: false
 ingress: true
 ingress_port: 8099
