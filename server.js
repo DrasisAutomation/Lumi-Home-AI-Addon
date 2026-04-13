@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 8099;
 const HA_URL = "http://supervisor/core/api";
 const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
 console.log("TOKEN:", HA_TOKEN ? "EXISTS" : "MISSING");
-const OAI_KEY = "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";
+let addonOptions = {};
+try { addonOptions = JSON.parse(fs.readFileSync('/data/options.json', 'utf8')); } catch(e) {}
+const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "";
 const OAI_MODEL = "gpt-4o-mini";
 
 const HISTORY_FILE = path.join(DIR, 'history.json');

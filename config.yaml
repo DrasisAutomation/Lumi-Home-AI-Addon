@@ -21,5 +21,7 @@ ports:
 homeassistant_api: true
 map:
   - config:rw
-options: {}
-schema: {}
+options:
+  openai_api_key: ""
+schema:
+  openai_api_key: "password?"
