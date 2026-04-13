@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8099;
 
 const HA_URL = "http://supervisor/core/api";
 const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "";
-const OAI_KEY = "sk-proj-o8Tf_zK3dZ" + "gzN5mpBmk80j8IUDq-7f_nr8Q3UnfPq1wmlS4BDZ_lAV-bsorY3tIbg5q1gF41Q-T3BlbkFJZsN_R7iT_xW1U3GQ677uMfnVxorOquPcW1yIfwq5Mh_qE4e07f_eYL67BxT2AHoWbz_55guuEA";
+const OAI_KEY = "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";
 const OAI_MODEL = "gpt-4o-mini";
 
 const HISTORY_FILE = path.join(DIR, 'history.json');
