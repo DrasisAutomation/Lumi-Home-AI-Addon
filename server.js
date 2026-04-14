@@ -795,6 +795,9 @@ const server = http.createServer(async (req, res) => {
         return replyJSON(res, { chat: `Ran into an issue boss: ${e.message}` });
       }
     });
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/api/transcribe') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', async () => {
