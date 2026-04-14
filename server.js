@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
-const PORT = 4321;
+const PORT = process.env.PORT || 8099;
 
 const HA_URL = "http://supervisor/core/api";
 const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
