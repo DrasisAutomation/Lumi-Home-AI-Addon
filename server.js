@@ -298,9 +298,8 @@ LEARNING:
 
 -----------------------------------------
 ENTITIES:
-${entsStr}\`;
+${entsStr}`;
 }
-
 async function parseNL(txt, entsStr) {
   const msgs = [
     { role: 'system', content: buildPrompt(entsStr) },
@@ -310,7 +309,7 @@ async function parseNL(txt, entsStr) {
 
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${OAI_KEY}\` },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OAI_KEY}` },
     body: JSON.stringify({
       model: OAI_MODEL,
       temperature: 0.1,
@@ -323,12 +322,12 @@ async function parseNL(txt, entsStr) {
   
   const raw = data.choices[0].message.content.trim();
   let jsonStr = raw;
-  const match = raw.match(/(\\{[\\s\\S]*\\}|\\[[\\s\\S]*\\])/);
+  const match = raw.match(/({[sS]*}|[[sS]*])/);
   if (match) jsonStr = match[0];
   
   // Natively repair disjointed objects if the AI forgets to wrap multiple elements in an array
-  if (jsonStr.match(/^\\s*\\{[\\s\\S]*\\}\\s*\\{[\\s\\S]*\\}\\s*$/)) {
-      jsonStr = \`[\${jsonStr.replace(/\\}\\s*\\{/g, '},{')}]\`;
+  if (jsonStr.match(/^s*{[sS]*}s*{[sS]*}s*$/)) {
+      jsonStr = `[${jsonStr.replace(/}s*{/g, '},{')}]`;
   }
   
   const parsed = JSON.parse(jsonStr);
@@ -443,13 +442,13 @@ const server = http.createServer(async (req, res) => {
   // --- STATES ENDPOINT ---
   if (req.method === 'GET' && req.url === '/api/states') {
     try {
-      const r = await fetch(\`\${HA_URL}/states\`, {
-        headers: { 'Authorization': \`Bearer \${HA_TOKEN}\`, 'Content-Type': 'application/json' }
+      const r = await fetch(`${HA_URL}/states`, {
+        headers: { 'Authorization': `Bearer ${HA_TOKEN}`, 'Content-Type': 'application/json' }
       });
       if (!r.ok) {
         const errText = await r.text();
         res.writeHead(r.status, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: \`HA Error \${r.status}: \${errText}\` }));
+        return res.end(JSON.stringify({ error: `HA Error ${r.status}: ${errText}` }));
       }
       const data = await r.json();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -493,7 +492,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const { text, entities } = JSON.parse(body);
         let q = (text || '').toLowerCase().trim();
-        const entsStr = (entities || []).map(e => \`\${e.name}|\${e.entity_id}|\${e.state}\`).join('\\n') || '(none)';
+        const entsStr = (entities || []).map(e => `${e.name}|${e.entity_id}|${e.state}`).join('n') || '(none)';
 
         // 1. Follow-up "YES"
         if (q === 'yes' || q === 'yeah' || q === 'yep') {
@@ -502,10 +501,10 @@ const server = http.createServer(async (req, res) => {
               PENDING_REPEAT = null;
               let outputs = [];
 			  for (let i = 0; i < r.length; i++) {
-				if (r[i].err) outputs.push(\`\${r[i].name} failed: \${r[i].err}\`);
-				else outputs.push(\`\${getIstTimeStr()} | \${r[i].name.toLowerCase()} | ON\`); // Simplification for text UI
+				if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
+				else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`); // Simplification for text UI
 			  }
-			  return replyJSON(res, { chat: outputs.join('\\n') });
+			  return replyJSON(res, { chat: outputs.join('n') });
             }
         } else {
             PENDING_REPEAT = null;
@@ -517,23 +516,23 @@ const server = http.createServer(async (req, res) => {
             return replyJSON(res, { chat: "Done boss! I have cleared your entire action history." });
         }
 
-        const logMatch = q.match(/last\\s*(\\d+)?\\s*log/);
+        const logMatch = q.match(/lasts*(d+)?s*log/);
         if (logMatch || q.includes('last logs') || q.includes('show logs') || q === 'logs' || q === 'logs.') {
           const count = parseInt(logMatch?.[1] || 10);
           const h = readJson(HISTORY_FILE);
           const l = h.slice(-count);
           if (l.length === 0) return replyJSON(res, {chat: "No logs found boss."});
           
-          let logHtml = \`<div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px">\`;
+          let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px">`;
           l.forEach(x => {
             const time = getIstTimeStr(new Date(x.timestamp));
             const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
-            logHtml += \`<div style="background:var(--surf2);padding:8px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-              <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">\${time}</span><span style="font-weight:500;color:var(--txt)">\${x.device}</span></span>
-              <span style="color:\${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">\${x.action}</span>
-            </div>\`;
+            logHtml += `<div style="background:var(--surf2);padding:8px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+              <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">${time}</span><span style="font-weight:500;color:var(--txt)">${x.device}</span></span>
+              <span style="color:${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">${x.action}</span>
+            </div>`;
           });
-          logHtml += \`</div>\`;
+          logHtml += `</div>`;
           return replyJSON(res, {chat: logHtml, isHtml: true});
         }
 
@@ -547,7 +546,7 @@ const server = http.createServer(async (req, res) => {
               const name = (r[0] && !r[0].err) ? r[0].name : "the device";
               let actionStr = 'turned ON';
               if (c.service && (c.service.includes('off') || c.service.includes('close'))) actionStr = 'turned OFF';
-              return replyJSON(res, { chat: \`I have \${actionStr} \${name.toLowerCase()} boss!\` });
+              return replyJSON(res, { chat: `I have ${actionStr} ${name.toLowerCase()} boss!` });
             }
           }
           return replyJSON(res, { chat: "No previous action to repeat boss." });
@@ -555,10 +554,10 @@ const server = http.createServer(async (req, res) => {
 
         // 4. SCHEDULES MANAGEMENT
         if (q.includes('schedule') || q.includes('schedules')) {
-          if (q.match(/\\b(show|what|list)\\b/)) {
+          if (q.match(/b(show|what|list)b/)) {
             const sum = readJson(SCHEDULE_FILE).length;
             if (sum === 0) return replyJSON(res, { chat: "No schedules found boss." });
-            return replyJSON(res, { chat: \`You have \${sum} scheduled actions boss. Check the schedule icon at the top for details!\` });
+            return replyJSON(res, { chat: `You have ${sum} scheduled actions boss. Check the schedule icon at the top for details!` });
           }
           if (q.includes('remove') || q.includes('delete') || q.includes('cancel') || q.includes('clear')) {
             let s = readJson(SCHEDULE_FILE);
@@ -568,9 +567,9 @@ const server = http.createServer(async (req, res) => {
               return replyJSON(res, { chat: "Done boss! I have removed all schedules." });
             }
             
-            const tMatch = q.match(/(\\d+):(\\d+)/);
+            const tMatch = q.match(/(d+):(d+)/);
             if (tMatch) {
-                const targetTimeStr = \`\${tMatch[1]}:\${tMatch[2]}\`;
+                const targetTimeStr = `${tMatch[1]}:${tMatch[2]}`;
                 const initialLen = s.length;
                 s = s.filter(x => {
                     if (x.displayTime && x.displayTime.includes(targetTimeStr)) {
@@ -580,20 +579,20 @@ const server = http.createServer(async (req, res) => {
                     return true;
                 });
                 writeJson(SCHEDULE_FILE, s);
-                if (s.length < initialLen) return replyJSON(res, { chat: \`Done boss! I have removed the schedule for \${targetTimeStr}.\` });
-                else return replyJSON(res, { chat: \`I couldn't find a schedule at \${targetTimeStr} boss.\` });
+                if (s.length < initialLen) return replyJSON(res, { chat: `Done boss! I have removed the schedule for ${targetTimeStr}.` });
+                else return replyJSON(res, { chat: `I couldn't find a schedule at ${targetTimeStr} boss.` });
             }
           }
         }
 
         // 5. TIME LOOKBACK
-        if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(\\d+)\\s*mis\\s*befor/)) {
+        if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(d+)s*miss*befor/)) {
           let target = Date.now();
           let windowMs = 15 * 60 * 1000;
           if (q.includes('yesterday')) target -= 24 * 3600 * 1000;
           else {
-            let m = q.match(/(\\d+)\\s*(hour|minute|day|min|mis)s?\\s*(?:ago|before|befor)/);
-            if (!m) m = q.match(/(?:before|befor)\\s*(\\d+)\\s*(hour|minute|day|min|mis)s?/);
+            let m = q.match(/(d+)s*(hour|minute|day|min|mis)s?s*(?:ago|before|befor)/);
+            if (!m) m = q.match(/(?:before|befor)s*(d+)s*(hour|minute|day|min|mis)s?/);
             if (m) {
               const v = parseInt(m[1]), u = m[2];
               if (u === 'hour') target -= v * 3600 * 1000;
@@ -603,7 +602,7 @@ const server = http.createServer(async (req, res) => {
           }
           
           let countLimit = 0;
-          let limitMatch = q.match(/(?:show|what).*(?:me\\s)?(\\d+)\\s*action/);
+          let limitMatch = q.match(/(?:show|what).*(?:mes)?(d+)s*action/);
           if (limitMatch) countLimit = parseInt(limitMatch[1]);
           
           const h = readJson(HISTORY_FILE);
@@ -614,24 +613,24 @@ const server = http.createServer(async (req, res) => {
           
           PENDING_REPEAT = { cmds: found.map(x => x.rawCmd).filter(x => !!x) };
           
-          let logHtml = \`<div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px">\`;
+          let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px">`;
           found.forEach(x => {
             const time = getIstTimeStr(new Date(x.timestamp));
             const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
-            logHtml += \`<div style="background:var(--surf2);padding:8px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-              <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">\${time}</span><span style="font-weight:500;color:var(--txt)">\${x.device}</span></span>
-              <span style="color:\${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">\${x.action}</span>
-            </div>\`;
+            logHtml += `<div style="background:var(--surf2);padding:8px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+              <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">${time}</span><span style="font-weight:500;color:var(--txt)">${x.device}</span></span>
+              <span style="color:${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">${x.action}</span>
+            </div>`;
           });
-          logHtml += \`</div><div style="margin-top:10px;font-size:13.5px">Do you want me to repeat this?</div>\`;
+          logHtml += `</div><div style="margin-top:10px;font-size:13.5px">Do you want me to repeat this?</div>`;
           return replyJSON(res, {chat: logHtml, isHtml: true});
         }
 
         // 5. DELAYS & SCHEDULES
         let delayMs = 0;
         let niceTime = '';
-        const delayMatch = q.match(/after (\\d+) (second|minute|hour)s?/);
-        const atMatch = q.match(/at (\\d+)(?::(\\d+))?\\s*(pm|am)?/);
+        const delayMatch = q.match(/after (d+) (second|minute|hour)s?/);
+        const atMatch = q.match(/at (d+)(?::(d+))?s*(pm|am)?/);
         
         let cleanedQ = q;
         if (delayMatch) {
@@ -640,7 +639,7 @@ const server = http.createServer(async (req, res) => {
           if (u === 'minute') delayMs = v * 60 * 1000;
           if (u === 'hour') delayMs = v * 3600 * 1000;
           cleanedQ = cleanedQ.replace(delayMatch[0], '').trim();
-          niceTime = \`in \${v} \${u}s\`;
+          niceTime = `in ${v} ${u}s`;
         } else if (atMatch) {
           let hr = parseInt(atMatch[1]);
           let mn = parseInt(atMatch[2] || 0);
@@ -650,15 +649,15 @@ const server = http.createServer(async (req, res) => {
           
           let now = new Date();
           const istStr = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Kolkata', year:'numeric', month:'numeric', day:'numeric'}).format(now);
-          const tDate = new Date(\`\${istStr} \${hr}:\${mn}:00 GMT+0530\`);
+          const tDate = new Date(`${istStr} ${hr}:${mn}:00 GMT+0530`);
           if (tDate.getTime() < Date.now()) tDate.setDate(tDate.getDate() + 1);
           delayMs = tDate.getTime() - Date.now();
           cleanedQ = cleanedQ.replace(atMatch[0], '').trim();
-          niceTime = \`at \${hr}:\${mn.toString().padStart(2, '0')} \${ampm||''}\`.trim();
+          niceTime = `at ${hr}:${mn.toString().padStart(2, '0')} ${ampm||''}`.trim();
         }
 
         // 6. OPENAI NLP
-        const aiQuery = delayMs > 0 ? \`\${cleanedQ} (CRITICAL: User is scheduling this. DO NOT ask for confirmation, output the action JSON immediately.)\` : (cleanedQ || "turn on");
+        const aiQuery = delayMs > 0 ? `${cleanedQ} (CRITICAL: User is scheduling this. DO NOT ask for confirmation, output the action JSON immediately.)` : (cleanedQ || "turn on");
         const parsed = await parseNL(aiQuery, entsStr);
         if (parsed.chat && !parsed.domain && !parsed.learn) return replyJSON(res, { chat: parsed.chat });
         
@@ -666,20 +665,20 @@ const server = http.createServer(async (req, res) => {
 
         if (delayMs > 0) {
           scheduleExecution(delayMs, cmds, entities, niceTime);
-          return replyJSON(res, { chat: \`Got it boss, I've scheduled that for \${niceTime}.\` });
+          return replyJSON(res, { chat: `Got it boss, I've scheduled that for ${niceTime}.` });
         } else {
           // Immediate
           const results = await executeCmds(cmds, entities);
           let outputs = [];
           for (let i = 0; i < results.length; i++) {
-              if (results[i].err) outputs.push(\`\${results[i].name} failed: \${results[i].err}\`);
+              if (results[i].err) outputs.push(`${results[i].name} failed: ${results[i].err}`);
           }
-          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\\n') });
+          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('n') });
           
           return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0].chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
         }
       } catch (e) {
-        return replyJSON(res, { chat: \`Ran into an issue boss: \${e.message}\` });
+        return replyJSON(res, { chat: `Ran into an issue boss: ${e.message}` });
       }
     });
     return;
@@ -692,8 +691,8 @@ const server = http.createServer(async (req, res) => {
         const { audioBase64, ext } = JSON.parse(body);
         const format = ext || 'webm';
         const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const pre = \`--\${boundary}\\r\\nContent-Disposition: form-data; name="file"; filename="audio.\${format}"\\r\\nContent-Type: audio/\${format}\\r\\n\\r\\n\`;
-        const post = \`\\r\\n--\${boundary}\\r\\nContent-Disposition: form-data; name="model"\\r\\n\\r\\nwhisper-1\\r\\n--\${boundary}--\`;
+        const pre = `--${boundary}rnContent-Disposition: form-data; name="file"; filename="audio.${format}"rnContent-Type: audio/${format}rnrn`;
+        const post = `rn--${boundary}rnContent-Disposition: form-data; name="model"rnrnwhisper-1rn--${boundary}--`;
         const payload = Buffer.concat([
           Buffer.from(pre, 'utf8'),
           Buffer.from(audioBase64, 'base64'),
@@ -702,8 +701,8 @@ const server = http.createServer(async (req, res) => {
         const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
           method: 'POST',
           headers: {
-            'Content-Type': \`multipart/form-data; boundary=\${boundary}\`,
-            'Authorization': \`Bearer \${OAI_KEY}\`
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Authorization': `Bearer ${OAI_KEY}`
           },
           body: payload
         });
@@ -742,5 +741,5 @@ function replyJSON(res, obj) {
 }
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(\`Lumi Demo AI Backend running at http://localhost:\${PORT}\`);
+  console.log(`Lumi Demo AI Backend running at http://localhost:${PORT}`);
 });
