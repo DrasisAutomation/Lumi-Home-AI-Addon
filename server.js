@@ -718,7 +718,10 @@ const server = http.createServer(async (req, res) => {
 
   // Serving static files
   let urlPath = req.url.split('?')[0];
-  if (urlPath === '/') urlPath = '/index.html';
+  
+  // HA Ingress can sometimes pass empty string for root URL if trailing slash is missing
+  if (urlPath === '/' || urlPath === '') urlPath = '/index.html';
+  
   const fp = path.join(DIR, urlPath);
   try {
     const data = fs.readFileSync(fp);
@@ -732,7 +735,11 @@ const server = http.createServer(async (req, res) => {
       'Surrogate-Control': 'no-store'
     });
     res.end(data);
-  } catch (_) { res.writeHead(404); res.end('Not found'); }
+  } catch (err) { 
+    console.error(`[Static File Error] Failed to serve ${fp}:`, err.message);
+    res.writeHead(404); 
+    res.end('404 Not Found - ' + urlPath); 
+  }
 });
 
 function replyJSON(res, obj) {
