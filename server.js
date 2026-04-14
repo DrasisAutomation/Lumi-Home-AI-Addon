@@ -4,11 +4,14 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
-const PORT = 4321;
+const PORT = process.env.PORT || 8099;
 
-const HA_URL = "https://demo.lumihomepro1.com/api";
-const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
-const OAI_KEY = "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";
+const HA_URL = "http://supervisor/core/api";
+const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
+console.log("TOKEN:", HA_TOKEN ? "EXISTS" : "MISSING");
+let addonOptions = {};
+try { addonOptions = JSON.parse(fs.readFileSync('/data/options.json', 'utf8')); } catch(e) {}
+const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "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";
 const OAI_MODEL = "gpt-4o-mini";
 
 const HISTORY_FILE = path.join(DIR, 'history.json');
@@ -542,6 +545,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // --- STATES ENDPOINT ---
+  if (req.method === 'GET' && req.url === '/api/states') {
+    try {
+      const r = await fetch(`${HA_URL}/states`, {
+        headers: { 'Authorization': `Bearer ${HA_TOKEN}`, 'Content-Type': 'application/json' }
+      });
+      if (!r.ok) {
+        const errText = await r.text();
+        res.writeHead(r.status, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: `HA Error ${r.status}: ${errText}` }));
+      }
+      const data = await r.json();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ result: data }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
   if (req.method === 'GET' && req.url === '/api/schedule') {
     const s = readJson(SCHEDULE_FILE);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -774,6 +797,73 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/api/transcribe') {
+    let body = ''; req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { audioBase64, ext } = JSON.parse(body);
+        const format = ext || 'webm';
+        const fileBuffer = Buffer.from(audioBase64, 'base64');
+
+        // --- SAVE TO HOME ASSISTANT VIA FTP ---
+        try {
+          const ftp = require('basic-ftp');
+          const { Readable } = require('stream');
+          const client = new ftp.Client();
+          client.ftp.verbose = false;
+          
+          await client.access({
+             host: process.env.FTP_HOST || "192.168.2.25",
+             user: "lumiai",
+             password: "lumiai",
+             secure: false
+          });
+          
+          try {
+             await client.ensureDir("www/community/images/mp3");
+          } catch(e) {
+             // Fallback if structure is different
+          }
+          
+          const stream = new Readable();
+          stream.push(fileBuffer);
+          stream.push(null);
+          
+          const filename = `recording_${Date.now()}.${format}`;
+          await client.uploadFrom(stream, `www/community/images/mp3/${filename}`);
+          
+          client.close();
+          console.log(`Saved audio via FTP to: www/community/images/mp3/${filename}`);
+        } catch (ftpErr) {
+          console.error("FTP Save Error:", ftpErr.message);
+        }
+
+        const boundary = '----Boundary' + Math.random().toString(36).substring(2);
+        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
+        const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
+        const payload = Buffer.concat([
+          Buffer.from(pre, 'utf8'),
+          fileBuffer,
+          Buffer.from(post, 'utf8')
+        ]);
+        const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Authorization': `Bearer ${OAI_KEY}`
+          },
+          body: payload
+        });
+        const ans = await r.json();
+        if (ans.error) throw new Error(ans.error.message);
+        return replyJSON(res, { text: ans.text || "" });
+      } catch (e) {
+        return replyJSON(res, { error: e.message });
+      }
+    });
+    return;
+  }
+
   // Serving static files
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/') urlPath = '/index.html';
@@ -782,7 +872,13 @@ const server = http.createServer(async (req, res) => {
     const data = fs.readFileSync(fp);
     const ext  = path.extname(fp);
     const ct   = MIME[ext] || 'text/plain';
-    res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 
+      'Content-Type': ct, 
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
     res.end(data);
   } catch (_) { res.writeHead(404); res.end('Not found'); }
 });
@@ -792,6 +888,6 @@ function replyJSON(res, obj) {
   res.end(JSON.stringify(obj));
 }
 
-server.listen(PORT, () => {
-  console.log(`Lumi Home AI Backend running at http://localhost:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Lumi Demo AI Backend running at http://localhost:${PORT}`);
 });
