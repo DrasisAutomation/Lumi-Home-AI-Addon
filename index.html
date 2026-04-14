@@ -1,1192 +1,1943 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Lumi Home AI</title>
-<meta name="description" content="Lumi Home AI — Premium smart home assistant powered by AI"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;1,14..32,400&display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0f0f11;
-  --surf:#1a1a1e;
-  --surf2:#232329;
-  --surf3:#2d2d36;
-  --bdr:rgba(255,255,255,.07);
-  --bdr2:rgba(255,255,255,.12);
-  --accent:#8ab4f8;
-  --accent-d:#6ea6f5;
-  --accent-l:rgba(138,180,248,.14);
-  --accent-ring:rgba(138,180,248,.28);
-  --green:#81c995;
-  --green-bg:rgba(129,201,149,.11);
-  --red:#f28b82;
-  --red-bg:rgba(242,139,130,.11);
-  --amber:#fdd663;
-  --txt:#e3e3e6;
-  --txt2:#9aa0a6;
-  --txt3:#5f6368;
-  --sh1:0 1px 6px rgba(0,0,0,.45);
-  --sh2:0 6px 28px rgba(0,0,0,.6);
-  --r:14px;--rx:100px;
-  --trs:.17s ease;
-  --ff:'Inter',system-ui,sans-serif;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Lumi Home AI</title>
+  <meta name="description" content="Lumi Home AI — Premium smart home assistant powered by AI" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;1,14..32,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-/* ─ Reset + Base ─ */
-html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;overflow:hidden}
-#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-[data-lucide]{display:inline-block}
+    :root {
+      --bg: #0f0f11;
+      --surf: #1a1a1e;
+      --surf2: #232329;
+      --surf3: #2d2d36;
+      --bdr: rgba(255, 255, 255, .07);
+      --bdr2: rgba(255, 255, 255, .12);
+      --accent: #8ab4f8;
+      --accent-d: #6ea6f5;
+      --accent-l: rgba(138, 180, 248, .14);
+      --accent-ring: rgba(138, 180, 248, .28);
+      --green: #81c995;
+      --green-bg: rgba(129, 201, 149, .11);
+      --red: #f28b82;
+      --red-bg: rgba(242, 139, 130, .11);
+      --amber: #fdd663;
+      --txt: #e3e3e6;
+      --txt2: #9aa0a6;
+      --txt3: #5f6368;
+      --sh1: 0 1px 6px rgba(0, 0, 0, .45);
+      --sh2: 0 6px 28px rgba(0, 0, 0, .6);
+      --r: 14px;
+      --rx: 100px;
+      --trs: .17s ease;
+      --ff: 'Inter', system-ui, sans-serif;
+    }
 
-/* ═══ TOPBAR ═══ */
-#topbar{
-  flex-shrink:0;height:58px;
-  background:rgba(15,15,17,.92);
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
-  border-bottom:1px solid var(--bdr);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;z-index:50;
-}
-.brand{font-size:17px;font-weight:600;display:flex;align-items:center;gap:10px;letter-spacing:-.2px;color:var(--txt)}
-.brand-ico{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(135deg,#5f93e8 0%,#93b8fb 100%);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.brand-ico [data-lucide]{color:#0f0f11;width:17px;height:17px}
-.brand-text em{color:var(--accent);font-style:normal}
-.tb-r{display:flex;align-items:center;gap:5px}
+    /* ─ Reset + Base ─ */
+    html,
+    body {
+      height: 100%;
+      font-family: var(--ff);
+      background: var(--bg);
+      color: var(--txt);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden
+    }
 
-/* icon button */
-.ib{
-  background:none;border:none;cursor:pointer;
-  border-radius:50%;width:38px;height:38px;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--txt2);transition:background var(--trs),color var(--trs)
-}
-.ib:hover{background:var(--surf2);color:var(--accent)}
-.ib [data-lucide]{width:19px;height:19px}
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      overflow: hidden
+    }
 
-/* ═══ BODY ═══ */
-#body{display:flex;flex:1;overflow:hidden}
-#chat-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+    [data-lucide] {
+      display: inline-block
+    }
 
-/* ── HERO ── */
-#hero{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:36px 20px 28px;gap:28px;overflow-y:auto;
-}
-.hero-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
-.hero-ring{
-  width:70px;height:70px;border-radius:22px;
-  background:linear-gradient(135deg,rgba(94,147,232,.18) 0%,rgba(147,184,251,.09) 100%);
-  border:1px solid rgba(138,180,248,.18);
-  box-shadow:0 0 0 6px rgba(138,180,248,.05);
-  display:flex;align-items:center;justify-content:center;margin-bottom:2px;
-}
-.hero-ring [data-lucide]{width:32px;height:32px;color:var(--accent)}
-.hero-h1{font-size:2rem;font-weight:600;letter-spacing:-.5px;color:var(--txt);line-height:1.2}
-.hero-h1 em{color:var(--accent);font-style:normal}
-.hero-sub{font-size:13.5px;color:var(--txt3);font-weight:400;margin-top:2px}
+    /* ═══ TOPBAR ═══ */
+    #topbar {
+      flex-shrink: 0;
+      height: 58px;
+      background: rgba(15, 15, 17, .92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--bdr);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 50;
+    }
 
-/* ── SEARCH BAR ── */
-.sbar{
-  display:flex;align-items:center;gap:8px;
-  background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--rx);
-  padding:0 6px 0 18px;height:54px;
-  width:100%;max-width:620px;
-  transition:box-shadow var(--trs),border-color var(--trs);
-  box-shadow:var(--sh1);
-}
-.sbar:focus-within{
-  box-shadow:0 0 0 1px var(--accent-ring),0 6px 30px rgba(138,180,248,.1);
-  border-color:rgba(138,180,248,.35)
-}
-.sbar-ico{color:var(--txt3);display:flex;flex-shrink:0}
-.sbar-ico [data-lucide]{width:16px;height:16px}
-.sbar input{
-  flex:1;border:none;outline:none;min-width:0;
-  font-family:var(--ff);font-size:15px;color:var(--txt);background:transparent
-}
-.sbar input::placeholder{color:var(--txt3);font-size:14px}
+    .brand {
+      font-size: 17px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -.2px;
+      color: var(--txt)
+    }
 
-.btn-v{
-  background:none;border:none;cursor:pointer;
-  width:40px;height:40px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--txt3);flex-shrink:0;transition:background var(--trs),color var(--trs)
-}
-.btn-v:hover{background:var(--surf2);color:var(--accent)}
-.btn-v [data-lucide]{width:18px;height:18px}
-.btn-s{
-  background:var(--accent);border:none;cursor:pointer;
-  width:38px;height:38px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:#0f0f11;flex-shrink:0;
-  transition:background var(--trs),transform var(--trs);
-  box-shadow:0 2px 10px rgba(138,180,248,.22)
-}
-.btn-s:hover{background:var(--accent-d);transform:scale(1.06)}
-.btn-s [data-lucide]{width:17px;height:17px}
+    .brand-ico {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #5f93e8 0%, #93b8fb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
 
-/* speak toggle */
-.btn-spk{
-  background:none;border:none;cursor:pointer;
-  width:40px;height:40px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--txt3);flex-shrink:0;transition:background var(--trs),color var(--trs),box-shadow var(--trs)
-}
-.btn-spk:hover{background:var(--surf2);color:var(--accent)}
-.btn-spk [data-lucide]{width:18px;height:18px}
-.btn-spk.active{color:var(--accent);background:rgba(138,180,248,.12);box-shadow:0 0 0 1px rgba(138,180,248,.3)}
+    .brand-ico [data-lucide] {
+      color: #0f0f11;
+      width: 17px;
+      height: 17px
+    }
 
-/* ── MESSAGES ── */
-#msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;display:none}
-#msgs::-webkit-scrollbar{width:3px}
-#msgs::-webkit-scrollbar-thumb{background:var(--surf3);border-radius:2px}
+    .brand-text em {
+      color: var(--accent);
+      font-style: normal
+    }
 
-.mr{display:flex;gap:12px;animation:fu .22s ease}
-@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.mr.u{justify-content:flex-end}
+    .tb-r {
+      display: flex;
+      align-items: center;
+      gap: 5px
+    }
 
-.av{
-  width:34px;height:34px;border-radius:50%;
-  background:linear-gradient(135deg,rgba(94,147,232,.22),rgba(147,184,251,.12));
-  border:1px solid rgba(138,180,248,.18);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
-}
-.av [data-lucide]{width:15px;height:15px;color:var(--accent)}
+    /* icon button */
+    .ib {
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--txt2);
+      transition: background var(--trs), color var(--trs)
+    }
 
-.bb{max-width:520px;width:fit-content;padding:12px 16px;border-radius:var(--r);font-size:14px;line-height:1.7}
-.bb.u{
-  background:rgba(138,180,248,.14);border:1px solid rgba(138,180,248,.18);
-  color:var(--txt);border-radius:var(--r) var(--r) 4px var(--r)
-}
-.bb.a{
-  background:var(--surf);border:1px solid var(--bdr);
-  border-radius:var(--r) var(--r) var(--r) 4px;color:var(--txt2);box-shadow:var(--sh1)
-}
+    .ib:hover {
+      background: var(--surf2);
+      color: var(--accent)
+    }
 
-/* typing dots */
-.td{display:flex;gap:5px;align-items:center;padding:2px 0}
-.td span{width:6px;height:6px;border-radius:50%;background:var(--txt3);animation:bo 1.1s ease-in-out infinite}
-.td span:nth-child(2){animation-delay:.18s}.td span:nth-child(3){animation-delay:.36s}
-@keyframes bo{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-5px);opacity:1}}
+    .ib [data-lucide] {
+      width: 19px;
+      height: 19px
+    }
 
-/* multi results */
-.multi-done{margin-top:10px;display:flex;flex-direction:column;gap:4px}
-.cmd-row{
-  display:flex;align-items:center;gap:7px;font-size:12.5px;
-  padding:6px 11px;border-radius:9px;background:var(--surf2);color:var(--txt2)
-}
-.cmd-row [data-lucide]{width:13px;height:13px;flex-shrink:0}
-.cmd-row.ok [data-lucide]{color:var(--green)}
-.cmd-row.err{color:var(--red)}
-.cmd-row.err [data-lucide]{color:var(--red)}
+    /* ═══ BODY ═══ */
+    #body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0
+    }
 
-/* ── BOTTOM INPUT ── */
-#inp{flex-shrink:0;padding:10px 20px 16px;background:rgba(15,15,17,.92);border-top:1px solid var(--bdr);display:none}
-#inp .sbar{margin:0 auto;}
+    #chat-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0
+    }
 
-/* ═══ VOICE OVERLAY ═══ */
-#voice-ov{
-  display:none;position:fixed;inset:0;
-  background:rgba(8,8,10,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:22px
-}
-#voice-ov.open{display:flex}
-.v-rings{position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center}
-.ring{position:absolute;border-radius:50%;border:1.5px solid rgba(138,180,248,.18);animation:rpuls 2s ease-out infinite}
-.ring:nth-child(1){width:64px;height:64px;animation-delay:0s}
-.ring:nth-child(2){width:92px;height:92px;animation-delay:.4s}
-.ring:nth-child(3){width:122px;height:122px;animation-delay:.8s}
-@keyframes rpuls{0%{transform:scale(.7);opacity:.85}100%{transform:scale(1.1);opacity:0}}
-.v-btn{
-  width:64px;height:64px;border-radius:50%;
-  background:linear-gradient(135deg,#5f93e8,#93b8fb);
-  border:none;cursor:pointer;z-index:1;position:relative;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 24px rgba(138,180,248,.38);
-  animation:mp 1.4s ease-in-out infinite
-}
-@keyframes mp{0%,100%{box-shadow:0 4px 24px rgba(138,180,248,.38)}50%{box-shadow:0 4px 40px rgba(138,180,248,.62)}}
-.v-btn [data-lucide]{width:26px;height:26px;color:#0f0f11}
-.v-label{color:var(--txt);font-size:15px;font-weight:500;letter-spacing:.3px}
-.v-sub{color:var(--txt3);font-size:12.5px;min-height:18px;margin-top:-10px;max-width:280px;text-align:center}
-.v-cancel{
-  background:none;border:1px solid rgba(255,255,255,.14);color:var(--txt3);
-  padding:9px 26px;border-radius:var(--rx);font-size:13px;cursor:pointer;font-family:var(--ff);
-  transition:all var(--trs)
-}
-.v-cancel:hover{border-color:rgba(255,255,255,.28);color:var(--txt)}
+    /* ── HERO ── */
+    #hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 20px 28px;
+      gap: 28px;
+      overflow-y: auto;
+    }
 
-/* ═══ SETTINGS DIALOG ═══ */
-#dlg-ov{
-  display:none;position:fixed;inset:0;
-  background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  z-index:300;align-items:center;justify-content:center;padding:16px
-}
-#dlg-ov.open{display:flex}
-#dlg{
-  background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;
-  width:520px;max-width:100%;max-height:88vh;
-  display:flex;flex-direction:column;
-  box-shadow:0 28px 90px rgba(0,0,0,.65);
-  animation:di .2s ease
-}
-@keyframes di{from{transform:scale(.96) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+    .hero-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center
+    }
 
-.dlg-head{
-  flex-shrink:0;padding:20px 22px 17px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--bdr)
-}
-.dlg-hl{display:flex;align-items:center;gap:11px}
-.dlg-ico{
-  width:36px;height:36px;border-radius:10px;
-  background:linear-gradient(135deg,rgba(94,147,232,.18),rgba(147,184,251,.09));
-  border:1px solid rgba(138,180,248,.18);
-  display:flex;align-items:center;justify-content:center
-}
-.dlg-ico [data-lucide]{width:17px;height:17px;color:var(--accent)}
-.dlg-head h2{font-size:15.5px;font-weight:600;color:var(--txt);letter-spacing:-.1px}
-.dlg-cls{
-  background:none;border:none;cursor:pointer;border-radius:50%;
-  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
-  color:var(--txt3);transition:background var(--trs),color var(--trs)
-}
-.dlg-cls:hover{background:var(--surf2);color:var(--txt)}
-.dlg-cls [data-lucide]{width:16px;height:16px}
+    .hero-ring {
+      width: 70px;
+      height: 70px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(94, 147, 232, .18) 0%, rgba(147, 184, 251, .09) 100%);
+      border: 1px solid rgba(138, 180, 248, .18);
+      box-shadow: 0 0 0 6px rgba(138, 180, 248, .05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2px;
+    }
 
-.dlg-body{flex:1;overflow-y:auto;padding:18px 22px 0}
-.dlg-body::-webkit-scrollbar{width:3px}
-.dlg-body::-webkit-scrollbar-thumb{background:var(--surf3);border-radius:2px}
+    .hero-ring [data-lucide] {
+      width: 32px;
+      height: 32px;
+      color: var(--accent)
+    }
 
-/* sec header */
-.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sh-l{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:var(--txt2)}
-.sh-l [data-lucide]{width:14px;height:14px;color:var(--accent)}
-.cnt-pill{
-  font-size:11px;font-weight:600;color:var(--accent);
-  background:rgba(138,180,248,.11);border:1px solid rgba(138,180,248,.2);
-  padding:2px 10px;border-radius:var(--rx)
-}
+    .hero-h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -.5px;
+      color: var(--txt);
+      line-height: 1.2
+    }
 
-/* search in dialog */
-.dsrch{
-  display:flex;align-items:center;gap:8px;
-  background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;
-  padding:0 12px;height:40px;margin-bottom:10px;transition:border-color var(--trs)
-}
-.dsrch:focus-within{border-color:rgba(138,180,248,.32)}
-.dsrch [data-lucide]{width:14px;height:14px;color:var(--txt3);flex-shrink:0}
-.dsrch input{
-  flex:1;border:none;outline:none;background:transparent;
-  font-size:13px;color:var(--txt);font-family:var(--ff)
-}
-.dsrch input::placeholder{color:var(--txt3)}
+    .hero-h1 em {
+      color: var(--accent);
+      font-style: normal
+    }
 
-/* entity list */
-#dlg-ent-list{
-  max-height:230px;overflow-y:auto;
-  border:1px solid var(--bdr);border-radius:10px;background:var(--bg)
-}
-#dlg-ent-list::-webkit-scrollbar{width:3px}
-#dlg-ent-list::-webkit-scrollbar-thumb{background:var(--surf3);border-radius:2px}
+    .hero-sub {
+      font-size: 13.5px;
+      color: var(--txt3);
+      font-weight: 400;
+      margin-top: 2px
+    }
 
-.de-r{
-  display:flex;align-items:center;gap:9px;
-  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);
-  transition:background var(--trs)
-}
-.de-r:last-child{border-bottom:none}
-.de-r:hover{background:var(--surf)}
-.de-ico{
-  width:28px;height:28px;border-radius:8px;
-  background:var(--surf2);border:1px solid var(--bdr);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0
-}
-.de-ico [data-lucide]{width:13px;height:13px;color:var(--txt3)}
-.de-inf{flex:1;min-width:0}
-.de-nm{font-size:12.5px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.de-id{font-size:10.5px;color:var(--txt3)}
-.de-pb{
-  width:26px;height:26px;border-radius:50%;border:1px solid var(--bdr2);
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .15s;background:transparent;color:var(--txt3)
-}
-.de-pb:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
-.de-pb.sel{background:var(--accent);color:#0f0f11;border-color:var(--accent)}
-.de-pb [data-lucide]{width:12px;height:12px}
+    /* ── SEARCH BAR ── */
+    .sbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surf);
+      border: 1px solid var(--bdr2);
+      border-radius: var(--rx);
+      padding: 0 6px 0 18px;
+      height: 54px;
+      width: 100%;
+      max-width: 620px;
+      transition: box-shadow var(--trs), border-color var(--trs);
+      box-shadow: var(--sh1);
+    }
 
-/* selected chips */
-#scw{margin-top:12px;padding-bottom:4px}
-.scl{font-size:11px;color:var(--txt3);margin-bottom:7px;letter-spacing:.3px;text-transform:uppercase}
-#scc{display:flex;flex-wrap:wrap;gap:5px;padding-bottom:2px}
-.sc{
-  display:flex;align-items:center;gap:5px;
-  background:rgba(138,180,248,.1);border:1px solid rgba(138,180,248,.17);
-  color:var(--accent);border-radius:var(--rx);padding:4px 12px;font-size:12px;font-weight:500
-}
-.sc button{
-  background:none;border:none;cursor:pointer;color:var(--txt3);
-  display:flex;align-items:center;padding:0;transition:color var(--trs)
-}
-.sc button:hover{color:var(--red)}
-.sc button [data-lucide]{width:11px;height:11px}
-.se{font-size:12.5px;color:var(--txt3);padding:3px 0}
+    .sbar:focus-within {
+      box-shadow: 0 0 0 1px var(--accent-ring), 0 6px 30px rgba(138, 180, 248, .1);
+      border-color: rgba(138, 180, 248, .35)
+    }
 
-/* footer */
-.dlg-ft{
-  flex-shrink:0;display:flex;justify-content:flex-end;gap:8px;
-  padding:14px 22px 18px;border-top:1px solid var(--bdr);margin-top:14px
-}
-.btn-cl{
-  background:none;border:1px solid var(--bdr2);color:var(--txt2);
-  font-family:var(--ff);font-size:13px;font-weight:500;
-  padding:9px 18px;border-radius:9px;cursor:pointer;transition:all var(--trs)
-}
-.btn-cl:hover{background:var(--surf2)}
-.btn-sv{
-  background:var(--accent);color:#0f0f11;border:none;
-  font-family:var(--ff);font-size:13px;font-weight:600;
-  padding:9px 22px;border-radius:9px;cursor:pointer;
-  transition:background var(--trs);box-shadow:0 2px 10px rgba(138,180,248,.22)
-}
-.btn-sv:hover{background:var(--accent-d)}
+    .sbar-ico {
+      color: var(--txt3);
+      display: flex;
+      flex-shrink: 0
+    }
 
-/* toast */
-#toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
-  background:var(--surf2);border:1px solid var(--bdr2);
-  color:var(--txt);padding:10px 20px;border-radius:10px;
-  font-size:13.5px;opacity:0;transition:all .22s;z-index:999;
-  pointer-events:none;white-space:nowrap;box-shadow:var(--sh2)
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .sbar-ico [data-lucide] {
+      width: 16px;
+      height: 16px
+    }
 
-/* ═══ MOBILE ═══ */
-@media(max-width:700px){
-  #topbar{padding:0 14px;height:54px}
-  .brand-text{display:none}
-  .st-pill span:not(#dot){font-size:11px}
-  #hero{padding:28px 16px 22px;gap:22px}
-  .hero-h1{font-size:1.6rem}
-  .hero-ring{width:58px;height:58px;border-radius:18px}
-  .hero-ring [data-lucide]{width:26px;height:26px}
-  .sbar{height:50px;padding:0 4px 0 14px;max-width:100%;width:100%}
-  .sbar input{font-size:14px;min-width:0;width:0}
-  .btn-v{width:36px;height:36px;flex-shrink:0}
-  .btn-v [data-lucide]{width:17px;height:17px}
-  .btn-s{width:34px;height:34px;flex-shrink:0}
-  .btn-s [data-lucide]{width:15px;height:15px}
-  .hints{gap:6px;justify-content:flex-start}
-  .chip{font-size:12px;padding:6px 13px}
-  #msgs{padding:14px}
-  .bb{max-width:calc(100% - 46px)}
-  #inp{padding:8px 12px 14px}
-  #inp .sbar{max-width:100%;width:100%}
-  #dlg{border-radius:14px;max-height:92vh}
-  .dlg-head{padding:16px 16px 14px}
-  .dlg-body{padding:14px 16px 0}
-  .dlg-ft{padding:12px 16px 16px}
-}
-@media(max-width:420px){
-  .hero-h1{font-size:1.35rem}
-  .hero-ring{width:52px;height:52px;border-radius:15px}
-  .hints{gap:5px}
-  .chip{font-size:11.5px;padding:5px 12px}
-}
-</style>
-</head>
-<body>
-<div id="app">
+    .sbar input {
+      flex: 1;
+      border: none;
+      outline: none;
+      min-width: 0;
+      font-family: var(--ff);
+      font-size: 15px;
+      color: var(--txt);
+      background: transparent
+    }
 
-<!-- TOP BAR -->
-<header id="topbar">
-  <div class="brand">
-    <div class="brand-ico">
-      <i data-lucide="bot"></i>
-    </div>
-    <span class="brand-text">Lumi <em>Home AI</em></span>
-  </div>
-  <div class="tb-r">
-    <!-- hidden status nodes still needed by JS -->
-    <div id="dot" class="conn" style="display:none"></div>
-    <span id="slbl" style="display:none"></span>
-    <span id="ecnt" style="display:none"></span>
-    <button class="ib" onclick="openLogsDlg()" title="Logs" aria-label="Logs">
-      <i data-lucide="file-text"></i>
-    </button>
-    <button class="ib" onclick="openSchedDlg()" title="Schedule" aria-label="Schedule">
-      <i data-lucide="calendar"></i>
-    </button>
-    <button id="btn-settings" class="ib" onclick="openDlg()" title="Settings" aria-label="Settings" style="display:none">
-      <i data-lucide="settings-2"></i>
-    </button>
-  </div>
-</header>
+    .sbar input::placeholder {
+      color: var(--txt3);
+      font-size: 14px
+    }
 
-<div id="body">
-  <div id="chat-col">
+    .btn-v {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--txt3);
+      flex-shrink: 0;
+      transition: background var(--trs), color var(--trs)
+    }
 
-    <!-- HERO -->
-    <div id="hero">
-      <div class="hero-wrap">
-        <div class="hero-ring">
-          <i data-lucide="bot"></i>
-        </div>
-        <h1 class="hero-h1">Lumi <em>Home AI</em></h1>
-        <p class="hero-sub">Control your home with a simple command</p>
-      </div>
+    .btn-v:hover {
+      background: var(--surf2);
+      color: var(--accent)
+    }
 
-      <div class="sbar">
-        <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
-        <input id="cmd" type="text" autocomplete="off" placeholder="Ask Lumi anything…" onkeydown="onKey(event)"/>
-        <button class="btn-v" onclick="startVoice()" title="Voice input" aria-label="Voice input">
-          <i data-lucide="mic"></i>
-        </button>
-        <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud" aria-label="Read aloud (off)">
-          <i data-lucide="volume-x"></i>
-        </button>
-        <button class="btn-s" onclick="send(false)" title="Send" aria-label="Send">
-          <i data-lucide="arrow-up"></i>
-        </button>
-      </div>
+    .btn-v [data-lucide] {
+      width: 18px;
+      height: 18px
+    }
 
+    .btn-s {
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f0f11;
+      flex-shrink: 0;
+      transition: background var(--trs), transform var(--trs);
+      box-shadow: 0 2px 10px rgba(138, 180, 248, .22)
+    }
 
-    </div>
+    .btn-s:hover {
+      background: var(--accent-d);
+      transform: scale(1.06)
+    }
 
-    <!-- MESSAGES -->
-    <div id="msgs"></div>
+    .btn-s [data-lucide] {
+      width: 17px;
+      height: 17px
+    }
 
-    <!-- BOTTOM INPUT -->
-    <div id="inp">
-      <div class="sbar">
-        <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
-        <input id="cmd2" type="text" autocomplete="off" placeholder="Ask Lumi…" onkeydown="onKey2(event)"/>
-        <button class="btn-v" onclick="startVoice()" title="Voice" aria-label="Voice">
-          <i data-lucide="mic"></i>
-        </button>
-        <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud" aria-label="Read aloud">
-          <i data-lucide="volume-x"></i>
-        </button>
-        <button class="btn-s" onclick="send(true)">
-          <i data-lucide="arrow-up"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
+    /* speak toggle */
+    .btn-spk {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--txt3);
+      flex-shrink: 0;
+      transition: background var(--trs), color var(--trs), box-shadow var(--trs)
+    }
 
-<div id="toast"></div>
+    .btn-spk:hover {
+      background: var(--surf2);
+      color: var(--accent)
+    }
 
-<!-- VOICE OVERLAY -->
-<div id="voice-ov">
-  <div class="v-rings">
-    <div class="ring"></div>
-    <div class="ring"></div>
-    <div class="ring"></div>
-    <button class="v-btn" onclick="stopVoice()" aria-label="Stop listening">
-      <i data-lucide="mic"></i>
-    </button>
-  </div>
-  <div class="v-label">Listening</div>
-  <div class="v-sub" id="voice-interim"></div>
-  <button class="v-cancel" onclick="cancelVoice()">Cancel</button>
-</div>
+    .btn-spk [data-lucide] {
+      width: 18px;
+      height: 18px
+    }
 
-<!-- SCHEDULE DIALOG -->
-<div id="sched-ov" style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===event.currentTarget)document.getElementById('sched-ov').style.display='none'">
-  <div id="sched-dlg" style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
-    <div class="dlg-head">
-      <div class="dlg-hl">
-        <div class="dlg-ico"><i data-lucide="calendar"></i></div>
-        <h2>Scheduled Actions</h2>
-      </div>
-      <button class="dlg-cls" onclick="document.getElementById('sched-ov').style.display='none'"><i data-lucide="x"></i></button>
-    </div>
-    <div class="dlg-body" id="sched-list"></div>
-    <div class="dlg-ft"><button class="btn-cl" onclick="document.getElementById('sched-ov').style.display='none'">Close</button></div>
-  </div>
-</div>
+    .btn-spk.active {
+      color: var(--accent);
+      background: rgba(138, 180, 248, .12);
+      box-shadow: 0 0 0 1px rgba(138, 180, 248, .3)
+    }
 
-<!-- LOGS DIALOG -->
-<div id="logs-ov" style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===event.currentTarget)document.getElementById('logs-ov').style.display='none'">
-  <div id="logs-dlg" style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
-    <div class="dlg-head">
-      <div class="dlg-hl">
-        <div class="dlg-ico"><i data-lucide="file-text"></i></div>
-        <h2>System Logs</h2>
-      </div>
-      <button class="dlg-cls" onclick="document.getElementById('logs-ov').style.display='none'"><i data-lucide="x"></i></button>
-    </div>
-    <div class="dlg-body" id="logs-list" style="overflow-y:auto;padding:0;"></div>
-    <div class="dlg-ft"><button class="btn-cl" onclick="document.getElementById('logs-ov').style.display='none'">Close</button></div>
-  </div>
-</div>
+    /* ── MESSAGES ── */
+    #msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      display: none
+    }
 
-<!-- SETTINGS DIALOG -->
-<div id="dlg-ov" onclick="ovClick(event)">
-  <div id="dlg">
-    <div class="dlg-head">
-      <div class="dlg-hl">
-        <div class="dlg-ico"><i data-lucide="cpu"></i></div>
-        <h2>AI-Enabled Devices</h2>
-      </div>
-      <button class="dlg-cls" onclick="closeDlg()" aria-label="Close">
-        <i data-lucide="x"></i>
-      </button>
-    </div>
-    <div class="dlg-body">
-      <div class="sh">
-        <div class="sh-l"><i data-lucide="layers"></i>Devices visible to AI</div>
-        <span class="cnt-pill"><span id="sc-count">0</span> selected</span>
-      </div>
-      <div class="dsrch">
-        <i data-lucide="search"></i>
-        <input id="dlg-epq" type="text" placeholder="Find a device…" oninput="renderDlgEnt()"/>
-      </div>
-      <div id="dlg-ent-list">
-        <div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">Connect to Home Assistant first to load devices.</div>
-      </div>
-      <div id="scw">
-        <div class="scl">Selected</div>
-        <div id="scc"><span class="se">No devices selected — use + above to add.</span></div>
-      </div>
-    </div>
-    <div class="dlg-ft">
-      <button class="btn-cl" onclick="closeDlg()">Cancel</button>
-      <button class="btn-sv" onclick="saveDlg()">Save</button>
-    </div>
-  </div>
-</div>
+    #msgs::-webkit-scrollbar {
+      width: 3px
+    }
 
-<script>
-/* ══════════════════════════════════════
-   LUCIDE ICON INIT
-══════════════════════════════════════ */
-function initLucide(){
-  if(window.lucide&&window.lucide.createIcons){
-    lucide.createIcons();
-  } else {
-    setTimeout(initLucide,60);
-  }
-}
-initLucide();
+    #msgs::-webkit-scrollbar-thumb {
+      background: var(--surf3);
+      border-radius: 2px
+    }
 
-/* ══════════════════════════════════════
-   CONFIG (config.json + localStorage)
-══════════════════════════════════════ */
-const LS_KEY  ="lumi_cfg";
+    .mr {
+      display: flex;
+      gap: 12px;
+      animation: fu .22s ease
+    }
 
-let ENTITIES=[];
-let SELECTED=new Set();
+    @keyframes fu {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
 
-/* Load from config.json (when served from HTTP), fallback to localStorage */
-async function loadConfig(){
-  // 1. Try config.json via HTTP
-  try{
-    const r=await fetch('config.json?v='+Date.now());
-    if(r.ok){
-      const j=await r.json();
-      if(Array.isArray(j.aiEnabledDevices)){
-        SELECTED=new Set(j.aiEnabledDevices);
-        return;
+      to {
+        opacity: 1;
+        transform: translateY(0)
       }
     }
-  }catch(_){}
-  // 2. Fallback: localStorage
-  try{
-    const raw=localStorage.getItem(LS_KEY);
-    if(raw){
-      const j=JSON.parse(raw);
-      if(Array.isArray(j.aiEnabledDevices)) SELECTED=new Set(j.aiEnabledDevices);
+
+    .mr.u {
+      justify-content: flex-end
     }
-  }catch(_){}
-}
 
-const API_BASE = window.location.pathname.endsWith('/') ? window.location.pathname.slice(0, -1) : window.location.pathname;
-
-/* Save: try POST /save-config (local server), then localStorage */
-async function saveConfig(){
-  const payload={aiEnabledDevices:[...SELECTED]};
-  let savedToFile=false;
-  try{
-    const r=await fetch(`${API_BASE}/save-config`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-    if(r.ok) savedToFile=true;
-  }catch(_){}
-  // Always also write to localStorage as backup
-  try{ localStorage.setItem(LS_KEY,JSON.stringify(payload)); }catch(_){}
-  return savedToFile;
-}
-
-/* ══════════════════════════════════════
-   REST API TO BACKEND
-══════════════════════════════════════ */
-function setDot(c,l){document.getElementById('dot').className=c;document.getElementById('slbl').textContent=l;}
-
-async function loadEnt(){
-  setDot('ok','Connected'); // Managed by Ingress
-  try{
-    const r = await fetch(`${API_BASE}/api/states`);
-    const d = await r.json();
-    if (d.error) {
-       document.getElementById('dlg-ent-list').innerHTML = `<div style="padding:16px;color:var(--red);text-align:center">${esc(d.error)}</div>`;
-       return;
+    .av {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(94, 147, 232, .22), rgba(147, 184, 251, .12));
+      border: 1px solid rgba(138, 180, 248, .18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
     }
-    if (!Array.isArray(d.result)) {
-       document.getElementById('dlg-ent-list').innerHTML = `<div style="padding:16px;color:var(--red);text-align:center">Invalid HA Response: ${esc(JSON.stringify(d.result))}</div>`;
-       return;
+
+    .av [data-lucide] {
+      width: 15px;
+      height: 15px;
+      color: var(--accent)
     }
-    ENTITIES=(d.result||[]).map(s=>({
-      entity_id:s.entity_id,domain:s.entity_id.split('.')[0],
-      state:s.state,name:s.attributes?.friendly_name||s.entity_id,
-      attributes:s.attributes||{}
-    }));
-    ENTITIES.sort((a,b)=>a.domain.localeCompare(b.domain)||a.name.localeCompare(b.name));
-    const ecnt=document.getElementById('ecnt');
-    ecnt.textContent='('+ENTITIES.length+')';
-  }catch(e){console.warn(e);}
-}
 
-/* ══════════════════════════════════════
-   DOMAIN ICON MAP
-══════════════════════════════════════ */
-const DIM={
-  light:'lightbulb',switch:'toggle-right',cover:'layers',
-  climate:'thermometer',media_player:'speaker',sensor:'activity',
-  binary_sensor:'radio',input_boolean:'check-square',scene:'sparkles',
-  script:'code-2',automation:'cpu',fan:'wind',camera:'camera',
-  lock:'lock',vacuum:'disc',alarm_control_panel:'shield',
-  water_heater:'droplets',humidifier:'cloud-drizzle'
-};
-function dico(d){return DIM[d]||'square';}
-
-/* ══════════════════════════════════════
-   AI
-══════════════════════════════════════ */
-
-/* Boss replies */
-const OK_REPLIES=["Done boss! What's next?","Got it boss! Anything else?","All set boss! What's next?","Consider it done boss!"];
-const FAIL_REPLIES=["Couldn't do that one boss.","That didn't work boss."];
-function okReply(){return OK_REPLIES[Math.floor(Math.random()*OK_REPLIES.length)];}
-function failReply(){return FAIL_REPLIES[Math.floor(Math.random()*FAIL_REPLIES.length)];}
-
-/* Entity scoring */
-function getAIEntities(q){
-  const pool=SELECTED.size>0
-    ?ENTITIES.filter(e=>SELECTED.has(e.entity_id))
-    :ENTITIES.filter(e=>['light','switch','cover','fan','input_boolean','scene','media_player','climate'].includes(e.domain)).slice(0,50);
-  if(!q) return pool;
-  const words=q.toLowerCase().split(/\s+/).filter(w=>w.length>2);
-  return pool.map(e=>{
-    const h=(e.name+' '+e.entity_id).toLowerCase();
-    let sc=0;words.forEach(w=>{if(h.includes(w))sc+=3;});
-    return{e,sc};
-  }).sort((a,b)=>b.sc-a.sc).slice(0,40).map(s=>s.e);
-}
-
-/* Unified prompt — AI decides intent, single call, no keyword guessing */
-function sendCmd(txt) {
-  const el = document.getElementById('cmd');
-  el.value = txt;
-  send(false);
-}
-
-function getIstTimeStr(d) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false
-  }).format(d || new Date());
-}
-
-async function openLogsDlg() {
-  document.getElementById('logs-ov').style.display='flex';
-  const el = document.getElementById('logs-list');
-  el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
-  try {
-    const r = await fetch(`${API_BASE}/api/history`);
-    const s = await r.json();
-    if (!s.length) {
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No logs found.</div>';
-      return;
+    .bb {
+      max-width: 520px;
+      width: fit-content;
+      padding: 12px 16px;
+      border-radius: var(--r);
+      font-size: 14px;
+      line-height: 1.7;
+      word-wrap: break-word;
+      word-break: break-word
     }
-    const l = s.slice(-30).reverse();
-    let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:16px">`;
-    l.forEach(x => {
-      const time = getIstTimeStr(new Date(x.timestamp));
-      const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
-      logHtml += `<div style="background:var(--surf2);padding:10px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);">
+
+    .bb.u {
+      background: rgba(138, 180, 248, .14);
+      border: 1px solid rgba(138, 180, 248, .18);
+      color: var(--txt);
+      border-radius: var(--r) var(--r) 4px var(--r)
+    }
+
+    .bb.a {
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: var(--r) var(--r) var(--r) 4px;
+      color: var(--txt2);
+      box-shadow: var(--sh1)
+    }
+
+    /* typing dots */
+    .td {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 2px 0
+    }
+
+    .td span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--txt3);
+      animation: bo 1.1s ease-in-out infinite
+    }
+
+    .td span:nth-child(2) {
+      animation-delay: .18s
+    }
+
+    .td span:nth-child(3) {
+      animation-delay: .36s
+    }
+
+    @keyframes bo {
+
+      0%,
+      60%,
+      100% {
+        transform: translateY(0);
+        opacity: .35
+      }
+
+      30% {
+        transform: translateY(-5px);
+        opacity: 1
+      }
+    }
+
+    /* multi results */
+    .multi-done {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .cmd-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      padding: 6px 11px;
+      border-radius: 9px;
+      background: var(--surf2);
+      color: var(--txt2)
+    }
+
+    .cmd-row [data-lucide] {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0
+    }
+
+    .cmd-row.ok [data-lucide] {
+      color: var(--green)
+    }
+
+    .cmd-row.err {
+      color: var(--red)
+    }
+
+    .cmd-row.err [data-lucide] {
+      color: var(--red)
+    }
+
+    /* ── BOTTOM INPUT ── */
+    #inp {
+      flex-shrink: 0;
+      padding: 10px 20px 16px;
+      background: rgba(15, 15, 17, .92);
+      border-top: 1px solid var(--bdr);
+      display: none
+    }
+
+    #inp .sbar {
+      margin: 0 auto;
+    }
+
+    /* ═══ VOICE OVERLAY ═══ */
+    #voice-ov {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 8, 10, .88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      z-index: 400;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 22px
+    }
+
+    #voice-ov.open {
+      display: flex
+    }
+
+    .v-rings {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(138, 180, 248, .18);
+      animation: rpuls 2s ease-out infinite
+    }
+
+    .ring:nth-child(1) {
+      width: 64px;
+      height: 64px;
+      animation-delay: 0s
+    }
+
+    .ring:nth-child(2) {
+      width: 92px;
+      height: 92px;
+      animation-delay: .4s
+    }
+
+    .ring:nth-child(3) {
+      width: 122px;
+      height: 122px;
+      animation-delay: .8s
+    }
+
+    @keyframes rpuls {
+      0% {
+        transform: scale(.7);
+        opacity: .85
+      }
+
+      100% {
+        transform: scale(1.1);
+        opacity: 0
+      }
+    }
+
+    .v-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #5f93e8, #93b8fb);
+      border: none;
+      cursor: pointer;
+      z-index: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(138, 180, 248, .38);
+      animation: mp 1.4s ease-in-out infinite
+    }
+
+    @keyframes mp {
+
+      0%,
+      100% {
+        box-shadow: 0 4px 24px rgba(138, 180, 248, .38)
+      }
+
+      50% {
+        box-shadow: 0 4px 40px rgba(138, 180, 248, .62)
+      }
+    }
+
+    .v-btn [data-lucide] {
+      width: 26px;
+      height: 26px;
+      color: #0f0f11
+    }
+
+    .v-label {
+      color: var(--txt);
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: .3px
+    }
+
+    .v-sub {
+      color: var(--txt3);
+      font-size: 12.5px;
+      min-height: 18px;
+      margin-top: -10px;
+      max-width: 280px;
+      text-align: center
+    }
+
+    .v-cancel {
+      background: none;
+      border: 1px solid rgba(255, 255, 255, .14);
+      color: var(--txt3);
+      padding: 9px 26px;
+      border-radius: var(--rx);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--ff);
+      transition: all var(--trs)
+    }
+
+    .v-cancel:hover {
+      border-color: rgba(255, 255, 255, .28);
+      color: var(--txt)
+    }
+
+    /* ═══ SETTINGS DIALOG ═══ */
+    #dlg-ov {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 8, 10, .78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 16px
+    }
+
+    #dlg-ov.open {
+      display: flex
+    }
+
+    #dlg {
+      background: var(--surf);
+      border: 1px solid var(--bdr2);
+      border-radius: 18px;
+      width: 520px;
+      max-width: 100%;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .65);
+      animation: di .2s ease
+    }
+
+    @keyframes di {
+      from {
+        transform: scale(.96) translateY(10px);
+        opacity: 0
+      }
+
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1
+      }
+    }
+
+    .dlg-head {
+      flex-shrink: 0;
+      padding: 20px 22px 17px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bdr)
+    }
+
+    .dlg-hl {
+      display: flex;
+      align-items: center;
+      gap: 11px
+    }
+
+    .dlg-ico {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(94, 147, 232, .18), rgba(147, 184, 251, .09));
+      border: 1px solid rgba(138, 180, 248, .18);
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .dlg-ico [data-lucide] {
+      width: 17px;
+      height: 17px;
+      color: var(--accent)
+    }
+
+    .dlg-head h2 {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--txt);
+      letter-spacing: -.1px
+    }
+
+    .dlg-cls {
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--txt3);
+      transition: background var(--trs), color var(--trs)
+    }
+
+    .dlg-cls:hover {
+      background: var(--surf2);
+      color: var(--txt)
+    }
+
+    .dlg-cls [data-lucide] {
+      width: 16px;
+      height: 16px
+    }
+
+    .dlg-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 22px 0
+    }
+
+    .dlg-body::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .dlg-body::-webkit-scrollbar-thumb {
+      background: var(--surf3);
+      border-radius: 2px
+    }
+
+    /* sec header */
+    .sh {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px
+    }
+
+    .sh-l {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--txt2)
+    }
+
+    .sh-l [data-lucide] {
+      width: 14px;
+      height: 14px;
+      color: var(--accent)
+    }
+
+    .cnt-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(138, 180, 248, .11);
+      border: 1px solid rgba(138, 180, 248, .2);
+      padding: 2px 10px;
+      border-radius: var(--rx)
+    }
+
+    /* search in dialog */
+    .dsrch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surf2);
+      border: 1px solid var(--bdr);
+      border-radius: 10px;
+      padding: 0 12px;
+      height: 40px;
+      margin-bottom: 10px;
+      transition: border-color var(--trs)
+    }
+
+    .dsrch:focus-within {
+      border-color: rgba(138, 180, 248, .32)
+    }
+
+    .dsrch [data-lucide] {
+      width: 14px;
+      height: 14px;
+      color: var(--txt3);
+      flex-shrink: 0
+    }
+
+    .dsrch input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 13px;
+      color: var(--txt);
+      font-family: var(--ff)
+    }
+
+    .dsrch input::placeholder {
+      color: var(--txt3)
+    }
+
+    /* entity list */
+    #dlg-ent-list {
+      max-height: 230px;
+      overflow-y: auto;
+      border: 1px solid var(--bdr);
+      border-radius: 10px;
+      background: var(--bg)
+    }
+
+    #dlg-ent-list::-webkit-scrollbar {
+      width: 3px
+    }
+
+    #dlg-ent-list::-webkit-scrollbar-thumb {
+      background: var(--surf3);
+      border-radius: 2px
+    }
+
+    .de-r {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      transition: background var(--trs)
+    }
+
+    .de-r:last-child {
+      border-bottom: none
+    }
+
+    .de-r:hover {
+      background: var(--surf)
+    }
+
+    .de-ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--surf2);
+      border: 1px solid var(--bdr);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .de-ico [data-lucide] {
+      width: 13px;
+      height: 13px;
+      color: var(--txt3)
+    }
+
+    .de-inf {
+      flex: 1;
+      min-width: 0
+    }
+
+    .de-nm {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--txt);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .de-id {
+      font-size: 10.5px;
+      color: var(--txt3)
+    }
+
+    .de-pb {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--bdr2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      background: transparent;
+      color: var(--txt3)
+    }
+
+    .de-pb:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-l)
+    }
+
+    .de-pb.sel {
+      background: var(--accent);
+      color: #0f0f11;
+      border-color: var(--accent)
+    }
+
+    .de-pb [data-lucide] {
+      width: 12px;
+      height: 12px
+    }
+
+    /* selected chips */
+    #scw {
+      margin-top: 12px;
+      padding-bottom: 4px
+    }
+
+    .scl {
+      font-size: 11px;
+      color: var(--txt3);
+      margin-bottom: 7px;
+      letter-spacing: .3px;
+      text-transform: uppercase
+    }
+
+    #scc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding-bottom: 2px
+    }
+
+    .sc {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(138, 180, 248, .1);
+      border: 1px solid rgba(138, 180, 248, .17);
+      color: var(--accent);
+      border-radius: var(--rx);
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 500
+    }
+
+    .sc button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--txt3);
+      display: flex;
+      align-items: center;
+      padding: 0;
+      transition: color var(--trs)
+    }
+
+    .sc button:hover {
+      color: var(--red)
+    }
+
+    .sc button [data-lucide] {
+      width: 11px;
+      height: 11px
+    }
+
+    .se {
+      font-size: 12.5px;
+      color: var(--txt3);
+      padding: 3px 0
+    }
+
+    /* footer */
+    .dlg-ft {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 14px 22px 18px;
+      border-top: 1px solid var(--bdr);
+      margin-top: 14px
+    }
+
+    .btn-cl {
+      background: none;
+      border: 1px solid var(--bdr2);
+      color: var(--txt2);
+      font-family: var(--ff);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 18px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all var(--trs)
+    }
+
+    .btn-cl:hover {
+      background: var(--surf2)
+    }
+
+    .btn-sv {
+      background: var(--accent);
+      color: #0f0f11;
+      border: none;
+      font-family: var(--ff);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 22px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background var(--trs);
+      box-shadow: 0 2px 10px rgba(138, 180, 248, .22)
+    }
+
+    .btn-sv:hover {
+      background: var(--accent-d)
+    }
+
+    /* toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      background: var(--surf2);
+      border: 1px solid var(--bdr2);
+      color: var(--txt);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      opacity: 0;
+      transition: all .22s;
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: var(--sh2)
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    /* ═══ MOBILE ═══ */
+    @media(max-width:700px) {
+      #topbar {
+        padding: 0 14px;
+        height: 54px
+      }
+
+      .brand-text {
+        display: none
+      }
+
+      .st-pill span:not(#dot) {
+        font-size: 11px
+      }
+
+      #hero {
+        padding: 28px 16px 22px;
+        gap: 22px
+      }
+
+      .hero-h1 {
+        font-size: 1.6rem
+      }
+
+      .hero-ring {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px
+      }
+
+      .hero-ring [data-lucide] {
+        width: 26px;
+        height: 26px
+      }
+
+      .sbar {
+        height: 50px;
+        padding: 0 4px 0 14px;
+        max-width: 100%;
+        width: 100%
+      }
+
+      .sbar input {
+        font-size: 14px;
+        min-width: 0;
+        width: 0
+      }
+
+      .btn-v {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0
+      }
+
+      .btn-v [data-lucide] {
+        width: 17px;
+        height: 17px
+      }
+
+      .btn-s {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0
+      }
+
+      .btn-s [data-lucide] {
+        width: 15px;
+        height: 15px
+      }
+
+      .hints {
+        gap: 6px;
+        justify-content: flex-start
+      }
+
+      .chip {
+        font-size: 12px;
+        padding: 6px 13px
+      }
+
+      #msgs {
+        padding: 14px
+      }
+
+      .bb {
+        max-width: calc(100% - 46px)
+      }
+
+      #inp {
+        padding: 8px 12px 14px
+      }
+
+      #inp .sbar {
+        max-width: 100%;
+        width: 100%
+      }
+
+      #dlg {
+        border-radius: 14px;
+        max-height: 92vh
+      }
+
+      .dlg-head {
+        padding: 16px 16px 14px
+      }
+
+      .dlg-body {
+        padding: 14px 16px 0
+      }
+
+      .dlg-ft {
+        padding: 12px 16px 16px
+      }
+    }
+
+    @media(max-width:420px) {
+      .hero-h1 {
+        font-size: 1.35rem
+      }
+
+      .hero-ring {
+        width: 52px;
+        height: 52px;
+        border-radius: 15px
+      }
+
+      .hints {
+        gap: 5px
+      }
+
+      .chip {
+        font-size: 11.5px;
+        padding: 5px 12px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- TOP BAR -->
+    <header id="topbar">
+      <div class="brand" style="cursor:pointer" onclick="logoutSession()" title="Click to Sign Out">
+        <div class="brand-ico">
+          <i data-lucide="bot"></i>
+        </div>
+        <span class="brand-text">Lumi <em>Home AI</em></span>
+      </div>
+      <div class="tb-r">
+        <!-- hidden status nodes still needed by JS -->
+        <div id="dot" class="conn" style="display:none"></div>
+        <span id="slbl" style="display:none"></span>
+        <span id="ecnt" style="display:none"></span>
+        <button class="ib" onclick="openLogsDlg()" title="Logs" aria-label="Logs">
+          <i data-lucide="file-text"></i>
+        </button>
+        <button class="ib" onclick="openSchedDlg()" title="Schedule" aria-label="Schedule">
+          <i data-lucide="calendar"></i>
+        </button>
+        <button id="btn-settings" class="ib" onclick="openDlg()" title="Settings" aria-label="Settings"
+          style="display:none">
+          <i data-lucide="settings-2"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="body">
+      <div id="chat-col">
+
+        <!-- HERO -->
+        <div id="hero">
+          <div class="hero-wrap">
+            <div class="hero-ring">
+              <i data-lucide="bot"></i>
+            </div>
+            <h1 class="hero-h1">Lumi <em>Home AI</em></h1>
+            <p class="hero-sub">Control your home with a simple command</p>
+          </div>
+
+          <div class="sbar">
+            <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
+            <input id="cmd" type="text" autocomplete="off" placeholder="Ask Lumi anything…" onkeydown="onKey(event)" />
+            <button class="btn-v" onclick="startVoice()" title="Voice input" aria-label="Voice input">
+              <i data-lucide="mic"></i>
+            </button>
+            <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud"
+              aria-label="Read aloud (off)">
+              <i data-lucide="volume-x"></i>
+            </button>
+            <button class="btn-s" onclick="send(false)" title="Send" aria-label="Send">
+              <i data-lucide="arrow-up"></i>
+            </button>
+          </div>
+
+
+        </div>
+
+        <!-- MESSAGES -->
+        <div id="msgs"></div>
+
+        <!-- BOTTOM INPUT -->
+        <div id="inp">
+          <div class="sbar">
+            <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
+            <input id="cmd2" type="text" autocomplete="off" placeholder="Ask Lumi…" onkeydown="onKey2(event)" />
+            <button class="btn-v" onclick="startVoice()" title="Voice" aria-label="Voice">
+              <i data-lucide="mic"></i>
+            </button>
+            <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud" aria-label="Read aloud">
+              <i data-lucide="volume-x"></i>
+            </button>
+            <button class="btn-s" onclick="send(true)">
+              <i data-lucide="arrow-up"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- VOICE OVERLAY -->
+  <div id="voice-ov">
+    <div class="v-rings">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <button class="v-btn" onclick="stopVoice()" aria-label="Stop listening">
+        <i data-lucide="mic"></i>
+      </button>
+    </div>
+    <div class="v-label">Listening</div>
+    <div class="v-sub" id="voice-interim"></div>
+    <button class="v-cancel" onclick="stopVoice()">Cancel</button>
+  </div>
+
+  <!-- SCHEDULE DIALOG -->
+  <div id="sched-ov"
+    style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px"
+    onclick="if(event.target===event.currentTarget)document.getElementById('sched-ov').style.display='none'">
+    <div id="sched-dlg"
+      style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
+      <div class="dlg-head">
+        <div class="dlg-hl">
+          <div class="dlg-ico"><i data-lucide="calendar"></i></div>
+          <h2>Scheduled Actions</h2>
+        </div>
+        <button class="dlg-cls" onclick="document.getElementById('sched-ov').style.display='none'"><i
+            data-lucide="x"></i></button>
+      </div>
+      <div class="dlg-body" id="sched-list"></div>
+      <div class="dlg-ft"><button class="btn-cl"
+          onclick="document.getElementById('sched-ov').style.display='none'">Close</button></div>
+    </div>
+  </div>
+
+  <!-- LOGS DIALOG -->
+  <div id="logs-ov"
+    style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px"
+    onclick="if(event.target===event.currentTarget)document.getElementById('logs-ov').style.display='none'">
+    <div id="logs-dlg"
+      style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
+      <div class="dlg-head">
+        <div class="dlg-hl">
+          <div class="dlg-ico"><i data-lucide="file-text"></i></div>
+          <h2>System Logs</h2>
+        </div>
+        <button class="dlg-cls" onclick="document.getElementById('logs-ov').style.display='none'"><i
+            data-lucide="x"></i></button>
+      </div>
+      <div class="dlg-body" id="logs-list" style="overflow-y:auto;padding:0;"></div>
+      <div class="dlg-ft"><button class="btn-cl"
+          onclick="document.getElementById('logs-ov').style.display='none'">Close</button></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS DIALOG -->
+  <div id="dlg-ov" onclick="ovClick(event)">
+    <div id="dlg">
+      <div class="dlg-head">
+        <div class="dlg-hl">
+          <div class="dlg-ico"><i data-lucide="cpu"></i></div>
+          <h2>AI-Enabled Devices</h2>
+        </div>
+        <button class="dlg-cls" onclick="closeDlg()" aria-label="Close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="dlg-body">
+        <div class="sh">
+          <div class="sh-l"><i data-lucide="layers"></i>Devices visible to AI</div>
+          <span class="cnt-pill"><span id="sc-count">0</span> selected</span>
+        </div>
+        <div class="dsrch">
+          <i data-lucide="search"></i>
+          <input id="dlg-epq" type="text" placeholder="Find a device…" oninput="renderDlgEnt()" />
+        </div>
+        <div id="dlg-ent-list">
+          <div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">Connect to Home Assistant first
+            to load devices.</div>
+        </div>
+        <div id="scw">
+          <div class="scl">Selected</div>
+          <div id="scc"><span class="se">No devices selected — use + above to add.</span></div>
+        </div>
+      </div>
+      <div class="dlg-ft">
+        <button class="btn-cl" onclick="closeDlg()">Cancel</button>
+        <button class="btn-sv" onclick="saveDlg()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ══════════════════════════════════════
+       LUCIDE ICON INIT
+    ══════════════════════════════════════ */
+    function initLucide() {
+      if (window.lucide && window.lucide.createIcons) {
+        lucide.createIcons();
+      } else {
+        setTimeout(initLucide, 60);
+      }
+    }
+    initLucide();
+
+    /* ══════════════════════════════════════
+       CONFIG (config.json + localStorage)
+    ══════════════════════════════════════ */
+    const HA_WS = "wss://demo.lumihomepro1.com/api/websocket";
+    const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
+    const LS_KEY = "lumi_cfg";
+
+    let ENTITIES = [];
+    let SELECTED = new Set();
+
+    /* Load from config.json (when served from HTTP), fallback to localStorage */
+    async function loadConfig() {
+      // 1. Try config.json via HTTP
+      try {
+        const r = await fetch('config.json?v=' + Date.now());
+        if (r.ok) {
+          const j = await r.json();
+          if (Array.isArray(j.aiEnabledDevices)) {
+            SELECTED = new Set(j.aiEnabledDevices);
+            return;
+          }
+        }
+      } catch (_) { }
+      // 2. Fallback: localStorage
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const j = JSON.parse(raw);
+          if (Array.isArray(j.aiEnabledDevices)) SELECTED = new Set(j.aiEnabledDevices);
+        }
+      } catch (_) { }
+    }
+
+    /* Save: try POST /save-config (local server), then localStorage */
+    async function saveConfig() {
+      const payload = { aiEnabledDevices: [...SELECTED] };
+      let savedToFile = false;
+      try {
+        const r = await fetch('/save-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) savedToFile = true;
+      } catch (_) { }
+      // Always also write to localStorage as backup
+      try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch (_) { }
+      return savedToFile;
+    }
+
+    /* ══════════════════════════════════════
+       WEBSOCKET
+    ══════════════════════════════════════ */
+    let sock = null, mId = 1, CBS = {}, rdy = false;
+    function connect() {
+      setDot('conn', 'Connecting');
+      try { sock = new WebSocket(HA_WS); } catch (_) { setDot('err', 'Invalid URL'); return; }
+      sock.onmessage = e => {
+        const m = JSON.parse(e.data);
+        if (m.type === 'auth_required') sock.send(JSON.stringify({ type: 'auth', access_token: HA_TOKEN }));
+        else if (m.type === 'auth_ok') { rdy = true; setDot('ok', 'Connected'); loadEnt(); }
+        else if (m.type === 'auth_invalid') setDot('err', 'Auth failed');
+        else if (m.type === 'result' && CBS[m.id]) { CBS[m.id](m); delete CBS[m.id]; }
+      };
+      sock.onclose = () => { rdy = false; setDot('err', 'Disconnected'); setTimeout(connect, 5000); };
+      sock.onerror = () => { rdy = false; setDot('err', 'Error'); };
+    }
+    function wsSend(obj) {
+      return new Promise((res, rej) => {
+        if (!rdy) { rej(new Error('Not connected')); return; }
+        const id = mId++;
+        CBS[id] = r => { if (r.success) res(r); else rej(new Error(r.error?.message || 'Failed')); };
+        sock.send(JSON.stringify({ id, ...obj }));
+        setTimeout(() => { if (CBS[id]) { delete CBS[id]; rej(new Error('Timeout')); } }, 10000);
+      });
+    }
+    function callSvc(d, s, data) { return wsSend({ type: 'call_service', domain: d, service: s, service_data: data }); }
+    function setDot(c, l) { document.getElementById('dot').className = c; document.getElementById('slbl').textContent = l; }
+
+    async function loadEnt() {
+      try {
+        const r = await wsSend({ type: 'get_states' });
+        ENTITIES = (r.result || []).map(s => ({
+          entity_id: s.entity_id, domain: s.entity_id.split('.')[0],
+          state: s.state, name: s.attributes?.friendly_name || s.entity_id,
+          attributes: s.attributes || {}
+        }));
+        ENTITIES.sort((a, b) => a.domain.localeCompare(b.domain) || a.name.localeCompare(b.name));
+        const ecnt = document.getElementById('ecnt');
+        ecnt.textContent = '(' + ENTITIES.length + ')';
+      } catch (e) { console.warn(e); }
+    }
+
+    /* ══════════════════════════════════════
+       DOMAIN ICON MAP
+    ══════════════════════════════════════ */
+    const DIM = {
+      light: 'lightbulb', switch: 'toggle-right', cover: 'layers',
+      climate: 'thermometer', media_player: 'speaker', sensor: 'activity',
+      binary_sensor: 'radio', input_boolean: 'check-square', scene: 'sparkles',
+      script: 'code-2', automation: 'cpu', fan: 'wind', camera: 'camera',
+      lock: 'lock', vacuum: 'disc', alarm_control_panel: 'shield',
+      water_heater: 'droplets', humidifier: 'cloud-drizzle'
+    };
+    function dico(d) { return DIM[d] || 'square'; }
+
+    /* ══════════════════════════════════════
+       AI
+    ══════════════════════════════════════ */
+
+    /* Boss replies */
+    const OK_REPLIES = ["Done boss! What's next?", "Got it boss! Anything else?", "All set boss! What's next?", "Consider it done boss!"];
+    const FAIL_REPLIES = ["Couldn't do that one boss.", "That didn't work boss."];
+    function okReply() { return OK_REPLIES[Math.floor(Math.random() * OK_REPLIES.length)]; }
+    function failReply() { return FAIL_REPLIES[Math.floor(Math.random() * FAIL_REPLIES.length)]; }
+
+    /* Entity scoring */
+    function getAIEntities(q) {
+      const pool = SELECTED.size > 0
+        ? ENTITIES.filter(e => SELECTED.has(e.entity_id))
+        : ENTITIES.filter(e => ['light', 'switch', 'cover', 'fan', 'input_boolean', 'scene', 'media_player', 'climate'].includes(e.domain)).slice(0, 50);
+      if (!q) return pool;
+      const words = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      return pool.map(e => {
+        const h = (e.name + ' ' + e.entity_id).toLowerCase();
+        let sc = 0; words.forEach(w => { if (h.includes(w)) sc += 3; });
+        return { e, sc };
+      }).sort((a, b) => b.sc - a.sc).slice(0, 40).map(s => s.e);
+    }
+
+    /* Unified prompt — AI decides intent, single call, no keyword guessing */
+    function sendCmd(txt) {
+      const el = document.getElementById('cmd');
+      el.value = txt;
+      send(false);
+    }
+
+    function getIstTimeStr(d) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(d || new Date());
+    }
+
+    async function openLogsDlg() {
+      document.getElementById('logs-ov').style.display = 'flex';
+      const el = document.getElementById('logs-list');
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
+      try {
+        const r = await fetch('/api/history');
+        const s = await r.json();
+        if (!s.length) {
+          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No logs found.</div>';
+          return;
+        }
+        const l = s.slice(-30).reverse();
+        let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:16px">`;
+        l.forEach(x => {
+          const time = getIstTimeStr(new Date(x.timestamp));
+          const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
+          logHtml += `<div style="background:var(--surf2);padding:10px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);">
         <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">${time}</span><span style="font-weight:500;color:var(--txt)">${esc(x.device)}</span></span>
         <span style="color:${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">${esc(x.action)}</span>
       </div>`;
-    });
-    logHtml += `</div>`;
-    el.innerHTML = logHtml;
-  } catch (e) {
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
-  }
-}
-
-async function delSched(id) {
-  try {
-    document.getElementById('sched-list').innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Deleting...</div>';
-    await fetch(`${API_BASE}/api/schedule?id=` + id, { method: 'DELETE' });
-    openSchedDlg();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-async function openSchedDlg() {
-  document.getElementById('sched-ov').style.display='flex';
-  const el = document.getElementById('sched-list');
-  el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
-  try {
-    const r = await fetch(`${API_BASE}/api/schedule`);
-    const s = await r.json();
-    if (!s.length) {
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No scheduled actions.</div>';
-      return;
+        });
+        logHtml += `</div>`;
+        el.innerHTML = logHtml;
+      } catch (e) {
+        el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
+      }
     }
-    el.innerHTML = s.map(x => {
-      const acts = x.cmds.map(c => {
-        let n = c.data?.entity_id || 'Device';
-        if (x.reqEntities) {
-          const e = x.reqEntities.find(ee=>ee.entity_id===n);
-          if (e) n = e.name;
+
+    async function delSched(id) {
+      try {
+        document.getElementById('sched-list').innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Deleting...</div>';
+        await fetch('/api/schedule?id=' + id, { method: 'DELETE' });
+        openSchedDlg();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function openSchedDlg() {
+      document.getElementById('sched-ov').style.display = 'flex';
+      const el = document.getElementById('sched-list');
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
+      try {
+        const r = await fetch('/api/schedule');
+        const s = await r.json();
+        if (!s.length) {
+          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No scheduled actions.</div>';
+          return;
         }
-        let t = (c.service && c.service.includes('off')) ? 'OFF' : 'ON';
-        return `${esc(n)} &rarr; ${t}`;
-      }).join(', ');
-      return `<div class="de-r" style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--bdr)">
+        el.innerHTML = s.map(x => {
+          const acts = x.cmds.map(c => {
+            let n = c.data?.entity_id || 'Device';
+            if (x.reqEntities) {
+              const e = x.reqEntities.find(ee => ee.entity_id === n);
+              if (e) n = e.name;
+            }
+            let t = (c.service && c.service.includes('off')) ? 'OFF' : 'ON';
+            return `${esc(n)} &rarr; ${t}`;
+          }).join(', ');
+          return `<div class="de-r" style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--bdr)">
         <div style="font-size:13px;width:100%">
           <div style="color:var(--txt);font-weight:500">${esc(x.displayTime)}</div>
           <div style="color:var(--txt3);font-size:11.5px;margin-top:4px;white-space:normal;line-height:1.4">${acts}</div>
         </div>
         <button onclick="delSched('${x.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:6px;opacity:0.8;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" aria-label="Delete"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button>
       </div>`;
-    }).join('');
-    lucide.createIcons({nodes:el.querySelectorAll('[data-lucide]')});
-  } catch (e) {
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
-  }
-}
-
-
-
-/* ══════════════════════════════════════
-   CHAT UI
-══════════════════════════════════════ */
-let chatOn=false,tC=0;
-function activateChat(){
-  if(chatOn)return;chatOn=true;
-  document.getElementById('hero').style.display='none';
-  document.getElementById('msgs').style.display='flex';
-  document.getElementById('inp').style.display='block';
-  setTimeout(()=>document.getElementById('cmd2').focus(),80);
-}
-function addU(txt){
-  activateChat();
-  const c=document.getElementById('msgs');
-  const d=document.createElement('div');d.className='mr u';
-  d.innerHTML=`<div class="bb u">${esc(txt)}</div>`;
-  c.appendChild(d);c.scrollTop=c.scrollHeight;
-}
-function addTyp(){
-  activateChat();
-  const c=document.getElementById('msgs');
-  const id='t'+(tC++);
-  const d=document.createElement('div');d.className='mr';d.id=id;
-  d.innerHTML=`<div class="av"><i data-lucide="bot"></i></div><div class="bb a"><div class="td"><span></span><span></span><span></span></div></div>`;
-  c.appendChild(d);c.scrollTop=c.scrollHeight;
-  lucide.createIcons({nodes:d.querySelectorAll('[data-lucide]')});
-  return id;
-}
-function rmTyp(id){const e=document.getElementById(id);if(e)e.remove();}
-function addA(txt, isHtml){
-  const c=document.getElementById('msgs');
-  const d=document.createElement('div');d.className='mr';
-  let inner=`<div class="av"><i data-lucide="bot"></i></div><div class="bb a" ${isHtml ? 'style="width:100%;max-width:100%;background:transparent!important;padding:0;box-shadow:none"' : ''}>${isHtml ? txt : esc(txt)}</div>`;
-  d.innerHTML=inner;
-  c.appendChild(d);c.scrollTop=c.scrollHeight;
-  lucide.createIcons({nodes:d.querySelectorAll('[data-lucide]')});
-  if (typeof speakText === 'function' && !isHtml) speakText(txt);
-}
-
-/* ══════════════════════════════════════
-   SETTINGS BUTTON VISIBILITY
-══════════════════════════════════════ */
-let settingsHideTimer=null;
-function showSettingsBtn(){
-  const b=document.getElementById('btn-settings');
-  b.style.display='flex';
-  clearTimeout(settingsHideTimer);
-  settingsHideTimer=setTimeout(hideSettingsBtn,30*60*1000);
-}
-function hideSettingsBtn(){
-  document.getElementById('btn-settings').style.display='none';
-  clearTimeout(settingsHideTimer);
-}
-
-async function send(fromBottom){
-  const el=document.getElementById(fromBottom?'cmd2':'cmd');
-  const txt=el.value.trim();if(!txt)return;
-  el.value='';
-
-  // ── Secret commands (show/hide settings) ──
-  const cmd=txt.toLowerCase().trim();
-  if(cmd.includes('show')&&(cmd.includes('entity config')||cmd.includes('setting'))){
-    showSettingsBtn();
-    addU(txt);
-    addA('Here you go boss! Settings will auto-hide in 30 minutes.');
-    return;
-  }
-  if(cmd.includes('hide')&&(cmd.includes('entity config')||cmd.includes('setting'))){
-    hideSettingsBtn();
-    addU(txt);
-    addA('Settings hidden boss!');
-    return;
-  }
-
-  addU(txt);
-  const tid=addTyp();
-  try{
-    const reqEntities = SELECTED.size > 0 
-      ? ENTITIES.filter(e => SELECTED.has(e.entity_id)) 
-      : ENTITIES.filter(e => ['light','switch','cover','fan','input_boolean','scene','media_player','climate'].includes(e.domain)).slice(0, 50);
-
-    const r = await fetch(`${API_BASE}/api/chat`, {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ text: txt, entities: reqEntities })
-    });
-    
-    let parsed;
-    try {
-      parsed = await r.json();
-    } catch(e) { throw new Error('Server returned invalid data'); }
-    
-    rmTyp(tid);
-    
-    if (parsed.error) addA('Issue boss: ' + parsed.error);
-    else if (parsed.chat) addA(parsed.chat, parsed.isHtml);
-  } catch(e) {
-    rmTyp(tid);
-    addA('Ran into an issue boss: ' + e.message);
-  }
-}
-
-function onKey(e){if(e.key==='Enter')send(false);}
-function onKey2(e){if(e.key==='Enter')send(true);}
-
-
-
-
-/* ══════════════════════════════════════
-   TEXT-TO-SPEECH
-══════════════════════════════════════ */
-let ttsEnabled=false;
-let ttsVoice=null;
-
-// Pre-load voices and pick best female English voice
-function loadTTSVoice(){
-  const pick=()=>{
-    const voices=window.speechSynthesis.getVoices();
-    // Priority: Google UK English Female > any female > any English
-    ttsVoice=
-      voices.find(v=>/google uk english female/i.test(v.name))||
-      voices.find(v=>/female/i.test(v.name)&&/en/i.test(v.lang))||
-      voices.find(v=>/en/i.test(v.lang)&&v.name.toLowerCase().includes('zira'))||
-      voices.find(v=>/en/i.test(v.lang)&&v.name.toLowerCase().includes('samantha'))||
-      voices.find(v=>/en/i.test(v.lang))||null;
-  };
-  pick();
-  if(window.speechSynthesis.onvoiceschanged!==undefined)
-    window.speechSynthesis.onvoiceschanged=pick;
-}
-loadTTSVoice();
-
-function toggleSpeak(){
-  ttsEnabled=!ttsEnabled;
-  if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel(); // stop any playing
-  // Sync both buttons (hero + bottom)
-  ['btn-spk','btn-spk2'].forEach(id=>{
-    const b=document.getElementById(id);
-    if(!b) return;
-    b.classList.toggle('active',ttsEnabled);
-    b.title=ttsEnabled?'Read aloud (on)':'Read aloud (off)';
-    b.setAttribute('aria-label',ttsEnabled?'Read aloud (on)':'Read aloud (off)');
-    // Swap icon
-    b.innerHTML=ttsEnabled?'<i data-lucide="volume-2"></i>':'<i data-lucide="volume-x"></i>';
-    if(window.lucide) lucide.createIcons({nodes:b.querySelectorAll('[data-lucide]')});
-  });
-  toast(ttsEnabled?'Speak mode on':'Speak mode off');
-}
-
-function speakText(txt){
-  if(!ttsEnabled||!txt) return;
-  window.speechSynthesis.cancel(); // cancel any ongoing speech
-  const utt=new SpeechSynthesisUtterance(txt);
-  if(ttsVoice) utt.voice=ttsVoice;
-  utt.lang='en-US';
-  utt.rate=1.0;  // natural speed
-  utt.pitch=1.1; // slightly higher = more feminine if no female voice found
-  utt.volume=1;
-  window.speechSynthesis.speak(utt);
-}
-
-/* ══════════════════════════════════════
-   VOICE
-══════════════════════════════════════ */
-let voiceRec=null, mediaRecorder=null, audioChunks=[];
-let isVoiceCancelled = false;
-
-async function startVoice(){
-  const isCompanionApp = /home.?assistant/i.test(navigator.userAgent);
-  const useWebSpeech = !isCompanionApp && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
-
-  if (useWebSpeech) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    voiceRec = new SR(); 
-    voiceRec.lang = 'en-US'; 
-    voiceRec.interimResults = true; 
-    voiceRec.continuous = false;
-    
-    document.getElementById('voice-ov').classList.add('open');
-    document.getElementById('voice-interim').innerHTML = 'Listening...';
-    
-    voiceRec.onresult = e => {
-      let interim = '', final = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
-        else interim += e.results[i][0].transcript;
+        }).join('');
+        lucide.createIcons({ nodes: el.querySelectorAll('[data-lucide]') });
+      } catch (e) {
+        el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
       }
-      document.getElementById('voice-interim').textContent = interim || final;
-      if (final) {
-        const id = chatOn ? 'cmd2' : 'cmd';
-        document.getElementById(id).value = final;
-        closeVoice(); send(chatOn);
+    }
+
+
+
+    /* ══════════════════════════════════════
+       CHAT UI
+    ══════════════════════════════════════ */
+    let chatOn = false, tC = 0;
+    function activateChat() {
+      if (chatOn) return; chatOn = true;
+      document.getElementById('hero').style.display = 'none';
+      document.getElementById('msgs').style.display = 'flex';
+      document.getElementById('inp').style.display = 'block';
+      setTimeout(() => document.getElementById('cmd2').focus(), 80);
+    }
+    function addU(txt) {
+      activateChat();
+      const c = document.getElementById('msgs');
+      const d = document.createElement('div'); d.className = 'mr u';
+      d.innerHTML = `<div class="bb u">${esc(txt)}</div>`;
+      c.appendChild(d); c.scrollTop = c.scrollHeight;
+    }
+    function addTyp() {
+      activateChat();
+      const c = document.getElementById('msgs');
+      const id = 't' + (tC++);
+      const d = document.createElement('div'); d.className = 'mr'; d.id = id;
+      d.innerHTML = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a"><div class="td"><span></span><span></span><span></span></div></div>`;
+      c.appendChild(d); c.scrollTop = c.scrollHeight;
+      lucide.createIcons({ nodes: d.querySelectorAll('[data-lucide]') });
+      return id;
+    }
+    function rmTyp(id) { const e = document.getElementById(id); if (e) e.remove(); }
+    function addA(txt, isHtml) {
+      const c = document.getElementById('msgs');
+      const d = document.createElement('div'); d.className = 'mr';
+      let inner = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a" ${isHtml ? 'style="width:100%;max-width:100%;background:transparent!important;padding:0;box-shadow:none"' : ''}>${isHtml ? txt : esc(txt)}</div>`;
+      d.innerHTML = inner;
+      c.appendChild(d); c.scrollTop = c.scrollHeight;
+      lucide.createIcons({ nodes: d.querySelectorAll('[data-lucide]') });
+      if (typeof speakText === 'function' && !isHtml) speakText(txt);
+    }
+
+    /* ══════════════════════════════════════
+       SETTINGS BUTTON VISIBILITY
+    ══════════════════════════════════════ */
+    let settingsHideTimer = null;
+    function showSettingsBtn() {
+      const b = document.getElementById('btn-settings');
+      b.style.display = 'flex';
+      clearTimeout(settingsHideTimer);
+      settingsHideTimer = setTimeout(hideSettingsBtn, 30 * 60 * 1000);
+    }
+    function hideSettingsBtn() {
+      document.getElementById('btn-settings').style.display = 'none';
+      clearTimeout(settingsHideTimer);
+    }
+
+    async function send(fromBottom) {
+      const el = document.getElementById(fromBottom ? 'cmd2' : 'cmd');
+      const txt = el.value.trim(); if (!txt) return;
+      el.value = '';
+
+      // ── Secret commands (show/hide settings) ──
+      const cmd = txt.toLowerCase().trim();
+      if (cmd.includes('show') && (cmd.includes('entity config') || cmd.includes('setting'))) {
+        showSettingsBtn();
+        addU(txt);
+        addA('Here you go boss! Settings will auto-hide in 30 minutes.');
+        return;
       }
-    };
-    voiceRec.onerror = () => closeVoice();
-    voiceRec.onend = () => closeVoice();
-    try { voiceRec.start(); return; } catch(e) {}
-  }
-  
-  // WEBRTC MEDIARECORDER (Seamless) OR NATIVE FALLBACK
-  let useNativeFallback = false;
-  
-  try {
-     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Not supported");
-     
-     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-     document.getElementById('voice-ov').classList.add('open');
-     document.getElementById('voice-interim').innerHTML = 'Listening...';
-     
-     // Detect supported Mime Type
-     let mimeType = 'audio/webm';
-     if (typeof MediaRecorder !== 'undefined') {
-        if (!MediaRecorder.isTypeSupported('audio/webm') && MediaRecorder.isTypeSupported('audio/mp4')) {
-           mimeType = 'audio/mp4';
+      if (cmd.includes('hide') && (cmd.includes('entity config') || cmd.includes('setting'))) {
+        hideSettingsBtn();
+        addU(txt);
+        addA('Settings hidden boss!');
+        return;
+      }
+
+      addU(txt);
+      const tid = addTyp();
+      try {
+        const reqEntities = SELECTED.size > 0
+          ? ENTITIES.filter(e => SELECTED.has(e.entity_id))
+          : ENTITIES.filter(e => ['light', 'switch', 'cover', 'fan', 'input_boolean', 'scene', 'media_player', 'climate'].includes(e.domain)).slice(0, 50);
+
+        const r = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: txt, entities: reqEntities })
+        });
+
+        let parsed;
+        try {
+          parsed = await r.json();
+        } catch (e) { throw new Error('Server returned invalid data'); }
+
+        rmTyp(tid);
+
+        if (parsed.error) addA('Issue boss: ' + parsed.error);
+        else if (parsed.chat) addA(parsed.chat, parsed.isHtml);
+      } catch (e) {
+        rmTyp(tid);
+        addA('Ran into an issue boss: ' + e.message);
+      }
+    }
+
+    function onKey(e) { if (e.key === 'Enter') send(false); }
+    function onKey2(e) { if (e.key === 'Enter') send(true); }
+
+
+
+
+    /* ══════════════════════════════════════
+       TEXT-TO-SPEECH
+    ══════════════════════════════════════ */
+    let ttsEnabled = false;
+    let ttsVoice = null;
+
+    // Pre-load voices and pick best female English voice
+    function loadTTSVoice() {
+      const pick = () => {
+        const voices = window.speechSynthesis.getVoices();
+        // Priority: Google UK English Female > any female > any English
+        ttsVoice =
+          voices.find(v => /google uk english female/i.test(v.name)) ||
+          voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang)) ||
+          voices.find(v => /en/i.test(v.lang) && v.name.toLowerCase().includes('zira')) ||
+          voices.find(v => /en/i.test(v.lang) && v.name.toLowerCase().includes('samantha')) ||
+          voices.find(v => /en/i.test(v.lang)) || null;
+      };
+      pick();
+      if (window.speechSynthesis.onvoiceschanged !== undefined)
+        window.speechSynthesis.onvoiceschanged = pick;
+    }
+    loadTTSVoice();
+
+    function toggleSpeak() {
+      ttsEnabled = !ttsEnabled;
+      if (!ttsEnabled) window.speechSynthesis.cancel(); // stop any playing
+      // Sync both buttons (hero + bottom)
+      ['btn-spk', 'btn-spk2'].forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.classList.toggle('active', ttsEnabled);
+        b.title = ttsEnabled ? 'Read aloud (on)' : 'Read aloud (off)';
+        b.setAttribute('aria-label', ttsEnabled ? 'Read aloud (on)' : 'Read aloud (off)');
+        // Swap icon
+        b.innerHTML = ttsEnabled ? '<i data-lucide="volume-2"></i>' : '<i data-lucide="volume-x"></i>';
+        lucide.createIcons({ nodes: b.querySelectorAll('[data-lucide]') });
+      });
+      toast(ttsEnabled ? 'Speak mode on' : 'Speak mode off');
+    }
+
+    function speakText(txt) {
+      if (!ttsEnabled || !txt) return;
+      window.speechSynthesis.cancel(); // cancel any ongoing speech
+      const utt = new SpeechSynthesisUtterance(txt);
+      if (ttsVoice) utt.voice = ttsVoice;
+      utt.lang = 'en-US';
+      utt.rate = 1.0;  // natural speed
+      utt.pitch = 1.1; // slightly higher = more feminine if no female voice found
+      utt.volume = 1;
+      window.speechSynthesis.speak(utt);
+    }
+
+    /* ══════════════════════════════════════
+       VOICE
+    ══════════════════════════════════════ */
+    let voiceRec = null;
+    function startVoice() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { toast('Voice not supported'); return; }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      voiceRec = new SR(); voiceRec.lang = 'en-US'; voiceRec.interimResults = true; voiceRec.continuous = false;
+      document.getElementById('voice-ov').classList.add('open');
+      document.getElementById('voice-interim').textContent = '';
+      voiceRec.onresult = e => {
+        let interim = '', final = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
         }
-     }
-     
-     mediaRecorder = new MediaRecorder(stream, { mimeType });
-     audioChunks = [];
-     
-     mediaRecorder.addEventListener('dataavailable', event => {
-        if (event.data.size > 0) audioChunks.push(event.data);
-     });
-     
-     mediaRecorder.addEventListener('stop', async () => {
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
-        const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
-        
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-           document.getElementById('voice-interim').innerHTML = 'Thinking...';
-           const base64data = reader.result.split(',')[1];
-           try {
-             const r = await fetch(`${API_BASE}/api/transcribe`, {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ audioBase64: base64data, ext })
-             });
-             const ans = await r.json();
-             if(ans.error) throw new Error(ans.error);
-             const final = ans.text ? ans.text.trim() : '';
-             if(final){
-               const id = chatOn ? 'cmd2' : 'cmd';
-               document.getElementById(id).value = final;
-               send(chatOn);
-             }
-           } catch(err) { toast('Voice error: ' + err.message); }
-           closeVoice();
-        };
-     });
-     
-     // Stop any active WebRTC tracks we have open globally when cancelling
-     voiceRec = {
-       stop: () => {
-         if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-         stream.getTracks().forEach(track => track.stop());
-       }
-     };
-     
-     mediaRecorder.start();
-  } catch(err) {
-      useNativeFallback = true;
-  }
-  
-  if (useNativeFallback) {
-      // NATIVE OS CAPTURE FALLBACK (Forced OS-level Microphone)
-      let nv = document.getElementById('native-voice');
-      if(!nv) {
-         nv = document.createElement('input');
-         nv.type = 'file';
-         nv.accept = 'audio/*';
-         nv.capture = 'microphone';
-         nv.id = 'native-voice';
-         nv.style.position = 'absolute';
-         nv.style.left = '-9999px';
-         nv.style.opacity = '0';
-         document.body.appendChild(nv);
-         
-         nv.addEventListener('change', async e => {
-           const file = e.target.files[0];
-           if(!file) return;
-           
-           document.getElementById('voice-ov').classList.add('open');
-           document.getElementById('voice-interim').innerHTML='Thinking...';
-           
-           const reader = new FileReader();
-           reader.readAsDataURL(file);
-           reader.onloadend = async () => {
-              const base64data = reader.result.split(',')[1];
-              // Use m4a as safest mobile container decoding for OpenAI Whisper
-              const ext = file.name.split('.').pop() || 'm4a'; 
-              try {
-                const r = await fetch(`${API_BASE}/api/transcribe`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ audioBase64: base64data, ext })
-                });
-                const ans = await r.json();
-                if(ans.error) throw new Error(ans.error);
-                const final = ans.text ? ans.text.trim() : '';
-                if(final){
-                  const id=chatOn?'cmd2':'cmd';
-                  document.getElementById(id).value=final;
-                  send(chatOn);
-                }
-              } catch(err) { toast('Voice error: ' + err.message); }
-              closeVoice();
-           };
-           nv.value = ''; // Reset
-         });
+        document.getElementById('voice-interim').textContent = interim || final;
+        if (final) {
+          const id = chatOn ? 'cmd2' : 'cmd';
+          document.getElementById(id).value = final;
+          closeVoice(); send(chatOn);
+        }
+      };
+      voiceRec.onerror = () => closeVoice(); voiceRec.onend = () => closeVoice();
+      voiceRec.start();
+    }
+    function stopVoice() { if (voiceRec) voiceRec.stop(); closeVoice(); }
+    function closeVoice() {
+      document.getElementById('voice-ov').classList.remove('open');
+      document.getElementById('voice-interim').textContent = '';
+    }
+
+    /* ══════════════════════════════════════
+       SETTINGS DIALOG
+    ══════════════════════════════════════ */
+    function openDlg() {
+      document.getElementById('dlg-epq').value = '';
+      renderDlgEnt(); renderSelChips();
+      document.getElementById('dlg-ov').classList.add('open');
+    }
+    function closeDlg() { document.getElementById('dlg-ov').classList.remove('open'); }
+    function ovClick(e) { if (e.target === e.currentTarget) closeDlg(); }
+    async function saveDlg() {
+      const saved = await saveConfig();
+      closeDlg();
+      toast(saved ? 'Saved to config.json' : 'Saved');
+    }
+
+    function renderDlgEnt() {
+      const q = (document.getElementById('dlg-epq').value || '').toLowerCase().trim();
+      const list = q
+        ? ENTITIES.filter(e => e.name.toLowerCase().includes(q) || e.entity_id.toLowerCase().includes(q) || e.domain.toLowerCase().includes(q))
+        : ENTITIES.slice(0, 100);
+      const el = document.getElementById('dlg-ent-list');
+      if (!list.length) {
+        el.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">${ENTITIES.length ? 'No results.' : 'Connect to HA first.'}</div>`;
+        return;
       }
-      nv.click();
-  }
-}
-function cancelVoice() {
-  if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  closeVoice();
-}
-function stopVoice(){
-  if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }
-  closeVoice();
-}
-function closeVoice(){
-  document.getElementById('voice-ov').classList.remove('open');
-  document.getElementById('voice-interim').textContent='';
-}
-
-/* ══════════════════════════════════════
-   SETTINGS DIALOG
-══════════════════════════════════════ */
-function openDlg(){
-  document.getElementById('dlg-epq').value='';
-  renderDlgEnt();renderSelChips();
-  document.getElementById('dlg-ov').classList.add('open');
-}
-function closeDlg(){document.getElementById('dlg-ov').classList.remove('open');}
-function ovClick(e){if(e.target===e.currentTarget)closeDlg();}
-async function saveDlg(){
-  const saved=await saveConfig();
-  closeDlg();
-  toast(saved?'Saved to config.json':'Saved');
-}
-
-function renderDlgEnt(){
-  const q=(document.getElementById('dlg-epq').value||'').toLowerCase().trim();
-  const list=q
-    ?ENTITIES.filter(e=>e.name.toLowerCase().includes(q)||e.entity_id.toLowerCase().includes(q)||e.domain.toLowerCase().includes(q))
-    :ENTITIES.slice(0,100);
-  const el=document.getElementById('dlg-ent-list');
-  if(!list.length){
-    el.innerHTML=`<div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">${ENTITIES.length?'No results.':'Connect to HA first.'}</div>`;
-    return;
-  }
-  el.innerHTML=list.map(e=>{
-    const isSel=SELECTED.has(e.entity_id);
-    const addIco=isSel?'<i data-lucide="check"></i>':'<i data-lucide="plus"></i>';
-    return`<div class="de-r">
+      el.innerHTML = list.map(e => {
+        const isSel = SELECTED.has(e.entity_id);
+        const addIco = isSel ? '<i data-lucide="check"></i>' : '<i data-lucide="plus"></i>';
+        return `<div class="de-r">
       <div class="de-ico"><i data-lucide="${dico(e.domain)}"></i></div>
       <div class="de-inf"><div class="de-nm" title="${esc(e.name)}">${esc(e.name)}</div><div class="de-id">${esc(e.entity_id)}</div></div>
-      <button class="de-pb${isSel?' sel':''}" onclick="dlgToggleSel('${e2(e.entity_id)}')" title="${isSel?'Remove':'Add'}">${addIco}</button>
+      <button class="de-pb${isSel ? ' sel' : ''}" onclick="dlgToggleSel('${e2(e.entity_id)}')" title="${isSel ? 'Remove' : 'Add'}">${addIco}</button>
     </div>`;
-  }).join('');
-  document.getElementById('sc-count').textContent=SELECTED.size;
-  lucide.createIcons({nodes:el.querySelectorAll('[data-lucide]')});
-}
+      }).join('');
+      document.getElementById('sc-count').textContent = SELECTED.size;
+      lucide.createIcons({ nodes: el.querySelectorAll('[data-lucide]') });
+    }
 
-function dlgToggleSel(eid){
-  if(SELECTED.has(eid)) SELECTED.delete(eid); else SELECTED.add(eid);
-  renderDlgEnt();renderSelChips();
-}
-function renderSelChips(){
-  document.getElementById('sc-count').textContent=SELECTED.size;
-  const c=document.getElementById('scc');
-  if(!SELECTED.size){c.innerHTML='<span class="se">No devices selected — use + above to add.</span>';return;}
-  c.innerHTML=[...SELECTED].map(id=>{
-    const e=ENTITIES.find(x=>x.entity_id===id);
-    return`<span class="sc">${esc(e?e.name:id)}<button onclick="removeSel('${e2(id)}')" title="Remove"><i data-lucide="x"></i></button></span>`;
-  }).join('');
-  lucide.createIcons({nodes:c.querySelectorAll('[data-lucide]')});
-}
-function removeSel(eid){SELECTED.delete(eid);renderDlgEnt();renderSelChips();}
+    function dlgToggleSel(eid) {
+      if (SELECTED.has(eid)) SELECTED.delete(eid); else SELECTED.add(eid);
+      renderDlgEnt(); renderSelChips();
+    }
+    function renderSelChips() {
+      document.getElementById('sc-count').textContent = SELECTED.size;
+      const c = document.getElementById('scc');
+      if (!SELECTED.size) { c.innerHTML = '<span class="se">No devices selected — use + above to add.</span>'; return; }
+      c.innerHTML = [...SELECTED].map(id => {
+        const e = ENTITIES.find(x => x.entity_id === id);
+        return `<span class="sc">${esc(e ? e.name : id)}<button onclick="removeSel('${e2(id)}')" title="Remove"><i data-lucide="x"></i></button></span>`;
+      }).join('');
+      lucide.createIcons({ nodes: c.querySelectorAll('[data-lucide]') });
+    }
+    function removeSel(eid) { SELECTED.delete(eid); renderDlgEnt(); renderSelChips(); }
 
-/* ══════════════════════════════════════
-   TOAST
-══════════════════════════════════════ */
-let tt;
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600);}
+    /* ══════════════════════════════════════
+       TOAST
+    ══════════════════════════════════════ */
+    let tt;
+    function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2600); }
 
-/* ══════════════════════════════════════
-   UTILS
-══════════════════════════════════════ */
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function e2(s){return String(s).replace(/'/g,"\\'");}
+    /* ══════════════════════════════════════
+       UTILS
+    ══════════════════════════════════════ */
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function e2(s) { return String(s).replace(/'/g, "\\'"); }
 
-/* ══════════════════════════════════════
-   BOOT 
-══════════════════════════════════════ */
-(async()=>{
-  await loadConfig();
-  await loadEnt();
-})();
-</script>
+    /* ══════════════════════════════════════
+       BOOT & SECURE GUARD
+    ══════════════════════════════════════ */
+    (async () => {
+      const authMethod = localStorage.getItem('authMethod');
+      const currentUser = localStorage.getItem('currentUser');
+
+      if (!authMethod || !currentUser) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // Real-time revocation check
+      db.collection('users').doc(currentUser).onSnapshot((doc) => {
+        if (!doc.exists || !doc.data().active) {
+          localStorage.clear();
+          window.location.href = '/login.html';
+        }
+      });
+
+      await loadConfig();
+      connect();
+    })();
+
+    function logoutSession() {
+      if (confirm("Are you sure you want to log out of Lumi AI?")) {
+        firebase.auth().signOut().then(() => {
+          localStorage.clear();
+          window.location.href = '/login.html';
+        }).catch(e => {
+          localStorage.clear();
+          window.location.href = '/login.html';
+        });
+      }
+    }
+  </script>
 </body>
+
 </html>
