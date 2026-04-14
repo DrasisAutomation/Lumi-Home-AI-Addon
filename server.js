@@ -556,8 +556,13 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(r.status, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: `HA Error ${r.status}: ${errText}` }));
       }
-    });
-    return;
+      const data = await r.json();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ result: data }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
   }
 
   if (req.method === 'GET' && req.url === '/api/schedule') {
