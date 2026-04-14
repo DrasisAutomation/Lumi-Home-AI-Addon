@@ -954,78 +954,98 @@ let isVoiceCancelled = false;
 
 async function startVoice(){
   const isCompanionApp = /home.?assistant/i.test(navigator.userAgent);
+  const useWebSpeech = !isCompanionApp && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
 
-  if(!isCompanionApp && ('webkitSpeechRecognition'in window || 'SpeechRecognition'in window)){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    voiceRec=new SR();voiceRec.lang='en-US';voiceRec.interimResults=true;voiceRec.continuous=false;
+  if (useWebSpeech) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    voiceRec = new SR(); 
+    voiceRec.lang = 'en-US'; 
+    voiceRec.interimResults = true; 
+    voiceRec.continuous = false;
     
     document.getElementById('voice-ov').classList.add('open');
-    document.getElementById('voice-interim').innerHTML='Listening...';
+    document.getElementById('voice-interim').innerHTML = 'Listening...';
     
-    voiceRec.onresult=e=>{
-      let interim='',final='';
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal) final+=e.results[i][0].transcript;
-        else interim+=e.results[i][0].transcript;
+    voiceRec.onresult = e => {
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
       }
-      document.getElementById('voice-interim').textContent=interim||final;
-      if(final){
-        const id=chatOn?'cmd2':'cmd';
-        document.getElementById(id).value=final;
-        closeVoice();send(chatOn);
+      document.getElementById('voice-interim').textContent = interim || final;
+      if (final) {
+        const id = chatOn ? 'cmd2' : 'cmd';
+        document.getElementById(id).value = final;
+        closeVoice(); send(chatOn);
       }
     };
-    voiceRec.onerror=()=>closeVoice();voiceRec.onend=()=>closeVoice();
+    voiceRec.onerror = () => closeVoice();
+    voiceRec.onend = () => closeVoice();
     try { voiceRec.start(); return; } catch(e) {}
   }
   
-  // NATIVE OS CAPTURE FALLBACK (Forced OS-level Microphone)
-  let nv = document.getElementById('native-voice');
-  if(!nv) {
-     nv = document.createElement('input');
-     nv.type = 'file';
-     nv.accept = 'audio/*';
-     nv.capture = 'microphone';
-     nv.id = 'native-voice';
-     nv.style.position = 'absolute';
-     nv.style.left = '-9999px';
-     nv.style.opacity = '0';
-     document.body.appendChild(nv);
+  // SEAMLESS MOBILE MICROPHONE (WebRTC MediaRecorder)
+  try {
+     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+     document.getElementById('voice-ov').classList.add('open');
+     document.getElementById('voice-interim').innerHTML = 'Listening...';
      
-     nv.addEventListener('change', async e => {
-       const file = e.target.files[0];
-       if(!file) return;
-       
-       document.getElementById('voice-ov').classList.add('open');
-       document.getElementById('voice-interim').innerHTML='Thinking...';
-       
-       const reader = new FileReader();
-       reader.readAsDataURL(file);
-       reader.onloadend = async () => {
-          const base64data = reader.result.split(',')[1];
-          // Use m4a as safest mobile container decoding for OpenAI Whisper
-          const ext = file.name.split('.').pop() || 'm4a'; 
-          try {
-            const r = await fetch(`${API_BASE}/api/transcribe`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioBase64: base64data, ext })
-            });
-            const ans = await r.json();
-            if(ans.error) throw new Error(ans.error);
-            const final = ans.text.trim();
-            if(final){
-              const id=chatOn?'cmd2':'cmd';
-              document.getElementById(id).value=final;
-              send(chatOn);
-            }
-          } catch(err) { toast('Voice error: ' + err.message); }
-          closeVoice();
-       };
-       nv.value = ''; // Reset
+     // Detect supported Mime Type
+     let mimeType = 'audio/webm';
+     if (typeof MediaRecorder !== 'undefined') {
+        if (!MediaRecorder.isTypeSupported('audio/webm') && MediaRecorder.isTypeSupported('audio/mp4')) {
+           mimeType = 'audio/mp4';
+        }
+     }
+     
+     mediaRecorder = new MediaRecorder(stream, { mimeType });
+     audioChunks = [];
+     
+     mediaRecorder.addEventListener('dataavailable', event => {
+        if (event.data.size > 0) audioChunks.push(event.data);
      });
+     
+     mediaRecorder.addEventListener('stop', async () => {
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+           document.getElementById('voice-interim').innerHTML = 'Thinking...';
+           const base64data = reader.result.split(',')[1];
+           try {
+             const r = await fetch(`${API_BASE}/api/transcribe`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ audioBase64: base64data, ext })
+             });
+             const ans = await r.json();
+             if(ans.error) throw new Error(ans.error);
+             const final = ans.text ? ans.text.trim() : '';
+             if(final){
+               const id = chatOn ? 'cmd2' : 'cmd';
+               document.getElementById(id).value = final;
+               send(chatOn);
+             }
+           } catch(err) { toast('Voice error: ' + err.message); }
+           closeVoice();
+        };
+     });
+     
+     // Stop any active WebRTC tracks we have open globally when cancelling
+     voiceRec = {
+       stop: () => {
+         if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+         stream.getTracks().forEach(track => track.stop());
+       }
+     };
+     
+     mediaRecorder.start();
+  } catch(err) {
+      toast("Mic access denied or unavailable.");
+      closeVoice();
   }
-  nv.click();
 }
 function cancelVoice() {
   if(voiceRec) { try{voiceRec.stop();}catch(e){} voiceRec=null; }

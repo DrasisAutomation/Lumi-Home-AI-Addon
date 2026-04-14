@@ -691,12 +691,47 @@ const server = http.createServer(async (req, res) => {
       try {
         const { audioBase64, ext } = JSON.parse(body);
         const format = ext || 'webm';
+        const fileBuffer = Buffer.from(audioBase64, 'base64');
+
+        // --- SAVE TO HOME ASSISTANT VIA FTP ---
+        try {
+          const ftp = require('basic-ftp');
+          const { Readable } = require('stream');
+          const client = new ftp.Client();
+          client.ftp.verbose = false;
+          
+          await client.access({
+             host: process.env.FTP_HOST || "192.168.2.25",
+             user: "lumiai",
+             password: "lumiai",
+             secure: false
+          });
+          
+          try {
+             await client.ensureDir("www/community/images/mp3");
+          } catch(e) {
+             // Fallback if structure is different
+          }
+          
+          const stream = new Readable();
+          stream.push(fileBuffer);
+          stream.push(null);
+          
+          const filename = `recording_${Date.now()}.${format}`;
+          await client.uploadFrom(stream, `www/community/images/mp3/${filename}`);
+          
+          client.close();
+          console.log(`Saved audio via FTP to: www/community/images/mp3/${filename}`);
+        } catch (ftpErr) {
+          console.error("FTP Save Error:", ftpErr.message);
+        }
+
         const boundary = '----Boundary' + Math.random().toString(36).substring(2);
         const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
         const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
         const payload = Buffer.concat([
           Buffer.from(pre, 'utf8'),
-          Buffer.from(audioBase64, 'base64'),
+          fileBuffer,
           Buffer.from(post, 'utf8')
         ]);
         const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
