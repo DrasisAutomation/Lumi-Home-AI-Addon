@@ -482,6 +482,7 @@ loadSchedules();
 
 // --- HTTP SERVER ---
 const server = http.createServer(async (req, res) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -807,7 +808,11 @@ const server = http.createServer(async (req, res) => {
     const ct   = MIME[ext] || 'text/plain';
     res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-store' });
     res.end(data);
-  } catch (_) { res.writeHead(404); res.end('Not found'); }
+  } catch (err) {
+    console.error(`[ERROR] file not found: ${fp} - ${err.message}`);
+    res.writeHead(404);
+    res.end(`404 Not Found: ${urlPath}`);
+  }
 });
 
 function replyJSON(res, obj) {
