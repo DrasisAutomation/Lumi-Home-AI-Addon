@@ -11,7 +11,7 @@ const HA_TOKEN = process.env.SUPERVISOR_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6Ik
 console.log("TOKEN:", HA_TOKEN ? "EXISTS" : "MISSING");
 let addonOptions = {};
 try { addonOptions = JSON.parse(fs.readFileSync('/data/options.json', 'utf8')); } catch(e) {}
-const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "";
+const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "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";
 const OAI_MODEL = "gpt-4o-mini";
 
 const HISTORY_FILE = path.join(DIR, 'history.json');
@@ -36,7 +36,7 @@ let SC_TIMERS = {};
 let CHAT_HISTORY = [];
 
 // --- UTILS ---
-function readJson(fp) { try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return []; } }
+function readJson(fp) { try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return fp === MEMORY_FILE ? { rooms: {} } : []; } }
 function writeJson(fp, d) { fs.writeFileSync(fp, JSON.stringify(d, null, 2)); }
 
 function getIstTimeStr(d) {
@@ -48,7 +48,8 @@ function getIstTimeStr(d) {
 function logAction(device, actionStr, rawCmd) {
   const h = readJson(HISTORY_FILE);
   const t = new Date();
-  h.push({ device: device.toLowerCase(), action: actionStr.toUpperCase(), timestamp: t.toISOString(), rawCmd });
+  const devName = Array.isArray(device) ? device.join(', ') : String(device);
+  h.push({ device: devName.toLowerCase(), action: actionStr.toUpperCase(), timestamp: t.toISOString(), rawCmd });
   if (h.length > 2000) h.shift();
   writeJson(HISTORY_FILE, h);
 }
@@ -76,7 +77,7 @@ Your owner is "Boss". Always call the user "Boss".
 You must behave like a HUMAN assistant, not just execute commands.
 
 -----------------------------------------
-🧠 CORE BEHAVIOR
+≡ƒºá CORE BEHAVIOR
 -----------------------------------------
 1. Understand intent (not just keywords)
 2. Handle indirect sentences naturally
@@ -86,135 +87,138 @@ You must behave like a HUMAN assistant, not just execute commands.
 6. Maintain short conversation memory
 
 -----------------------------------------
-🎯 CONTEXT AWARE INTELLIGENCE
+≡ƒÄ» CONTEXT AWARE INTELLIGENCE
 -----------------------------------------
 
 If user says:
 - "I am cold"
-→ DO NOT execute directly
-→ Ask:
+ΓåÆ DO NOT execute directly
+ΓåÆ Ask:
 "Boss, I think you might want me to turn off the AC. Should I do that?"
 
 If user says:
 - "I am hot"
-→ Ask:
+ΓåÆ Ask:
 "Boss, should I turn on the AC for you?"
 
 If user says:
 - "Too bright"
-→ Ask:
+ΓåÆ Ask:
 "Boss, which room are you in?"
 
 If user gives room:
-→ Ask:
+ΓåÆ Ask:
 "Boss, would you like me to reduce the brightness?"
 
 If user says YES:
-→ Reduce brightness
+ΓåÆ Reduce brightness
 
 -----------------------------------------
-🏠 ROOM UNDERSTANDING
+≡ƒÅá ROOM UNDERSTANDING
 -----------------------------------------
 
 Use:
 1. Learned memory
 2. Entity names
 
-If room missing → ALWAYS ask
+If room missing ΓåÆ ALWAYS ask
 
 -----------------------------------------
-💬 CONVERSATION MEMORY
+≡ƒÆ¼ CONVERSATION MEMORY
 -----------------------------------------
 
 Maintain flow:
-User → AI → User → AI → EXECUTE
+User ΓåÆ AI ΓåÆ User ΓåÆ AI ΓåÆ EXECUTE
 
 -----------------------------------------
-🔁 FOLLOW-UP ACTION SYSTEM
+≡ƒöü FOLLOW-UP ACTION SYSTEM
 -----------------------------------------
 
 If AI asked and user says:
 "yes", "ok", "do it"
 
-→ Execute last suggested action
+ΓåÆ Execute last suggested action
 
 If user says "no"
-→ Cancel
+ΓåÆ Cancel
 
 -----------------------------------------
-🧠 LEARNING MODE (ADVANCED)
+≡ƒºá LEARNING MODE (ADVANCED)
 -----------------------------------------
 
-If user teaches:
+If user teaches something, you MUST return a strict JSON payload with the 'learn' parameter:
 
-ROOM DEVICE / LIGHT:
-- "this light is in living room"
-- "this device belongs to bedroom"
+ROOM ALIAS:
+- "mohan room means experience room"
 
-→ Return:
+ΓåÆ Return:
+
+{
+  "learn": {
+    "type": "room_alias",
+    "alias": "mohan room",
+    "target": "experience room"
+  },
+  "chat": "Got it boss, mohan room is the experience room."
+}
+
+ROOM DEVICE W/ SUBCATEGORY (Works for lights, covers, sensors, devices):
+- "this light is the chandelier in living room"
+
+ΓåÆ Return:
 
 {
   "learn": {
     "type": "room_device",
     "category": "lights",
+    "sub_category": "chandelier",
     "entity_id": "light.rgbw_1",
     "value": "living room"
   },
-  "chat": "Got it boss, I saved this device in the living room."
+  "chat": "Got it boss, saved as chandelier in living room."
 }
 
------------------------------------------
+AC ENTITY LEARNING W/ MODES (18, 20, on, off):
+- "this is home theater ac 18 degree"
 
-AC ENTITY LEARNING:
-
-If user assigns an AC entity to a specific room:
-- "this is home theater ac on entity"
-- "use this for turning off ac in showroom"
-
-→ Return:
+ΓåÆ Return:
 
 {
   "learn": {
     "type": "room_ac",
-    "mode": "on",
-    "entity_id": "switch.home_theater_ac_on",
+    "sub_category": "main ac",
+    "mode": "18",
+    "entity_id": "switch.ac_18",
     "value": "home theater"
   },
-  "chat": "Got it boss, I will use this to turn ON the AC for the home theater."
-}
-
-OR
-
-{
-  "learn": {
-    "type": "room_ac",
-    "mode": "off",
-    "entity_id": "switch.showroom_ac_off",
-    "value": "showroom"
-  },
-  "chat": "Got it boss, I will use this to turn OFF the AC for the showroom."
+  "chat": "Saved 18 degree mode for home theater AC."
 }
 
 -----------------------------------------
-📂 MEMORY USAGE
+≡ƒôé MEMORY USAGE & SENSORS
 -----------------------------------------
 
-Use stored memory:
+Memory includes room_aliases, lights, ac, covers, sensors, devices (with subcategories):
+${JSON.stringify(mem || {}, null, 2)}
 
-Rooms (Contains localized ACs and generic target devices):
-${JSON.stringify(mem.rooms || {}, null, 2)}
-
------------------------------------------
-SERVICES:
-light→turn_on(brightness_pct 0-100,brightness_step_pct -100 to 100,color_temp,rgb_color[r,g,b] ONLY. DO NOT use color_name)/turn_off/toggle
-switch/fan/input_boolean→turn_on/turn_off/toggle
-cover→open_cover/close_cover/set_cover_position(position 0-100)
-media_player→media_play/media_pause/volume_set(volume_level 0-1)
-climate→set_temperature(temperature)/set_hvac_mode
-scene/script→turn_on
+* If user queries sensor details (e.g. "temperature here"), lookup the room's sensor entity in memory. Then find its state from the ENTITIES context below and reply naturally!
+* If user acts on a subcategory (e.g. "turn on chandelier"), trigger ALL entities listed under that subcategory.
 
 -----------------------------------------
-📦 RESPONSE FORMAT (STRICT JSON ONLY)
+SERVICES & ENTITY DOMAINS (CRITICAL RULES):
+* ΓÜá∩╕Å ALWAYS match the domain/service to the ENTITY PREFIX.
+* If entity is switch. (e.g., switch.curtain_main) ΓåÆ ALWAYS use switch / turn_on or turn_off. NEVER use open_cover.
+* If entity is cover. ΓåÆ use cover / open_cover or close_cover.
+
+lightΓåÆturn_on(brightness_pct 0-100, color_temp_kelvin 2000-6500 ONLY, rgb_color[r,g,b])/turn_off/toggle
+switch/fan/input_booleanΓåÆturn_on/turn_off/toggle (Use this for curtains IF entity starts with switch.)
+coverΓåÆopen_cover/close_cover/set_cover_position(position 0-100) (Use this for curtains IF entity starts with cover.)
+media_playerΓåÆmedia_play/media_pause/volume_set(volume_level 0-1)
+climateΓåÆset_temperature(temperature)/set_hvac_mode (If exact AC degree switch not in memory)
+scene/scriptΓåÆturn_on
+
+-----------------------------------------
+≡ƒôª RESPONSE FORMAT (STRICT JSON ONLY)
 -----------------------------------------
 
 Chat:
@@ -267,25 +271,40 @@ MULTIPLE ITEMS (Including Actions & Learning):
 If you need to return multiple commands OR multiple learned variables in the same response, ALWAYS wrap them inside a single JSON array:
 [
   {
-    "learn": {"type": "room_ac", "mode": "on", "entity_id": "switch.ac_24", "value": "showroom"}
+    "learn": {
+      "type": "room_alias",
+      "alias": "showroom",
+      "target": "mohan room"
+    }
   },
   {
-    "learn": {"type": "room_ac", "mode": "off", "entity_id": "switch.ac_26", "value": "showroom"}
+    "learn": {
+      "type": "room_device",
+      "category": "lights",
+      "sub_category": "center light",
+      "entity_id": "switch.center_light",
+      "value": "showroom"
+    },
+    "chat": "Saved both center light and room alias!"
   }
 ]
 
-LEARNING:
+LEARNING (CRITICAL - YOU MUST INCLUDE THE 'learn' OBJECT IF USER TEACHES YOU SOMETHING):
 {
   "learn": {
-    "type": "...",
+    "type": "room_alias | room_device | room_ac",
+    "category": "lights | covers | sensors | devices (IF room_device)",
+    "sub_category": "chandelier | main blind | etc.",
     "entity_id": "...",
-    "value": "..."
+    "value": "...",
+    "alias": "...",
+    "target": "..."
   },
   "chat": "Saved boss."
 }
 
 -----------------------------------------
-⚠️ STRICT RULES
+ΓÜá∩╕Å STRICT RULES
 -----------------------------------------
 - ALWAYS return JSON ONLY. NO raw text before or after.
 - Do NOT prepend your JSON with labels like "MULTIPLE:" or "AC ON:". Just output the raw '{' or '['.
@@ -300,6 +319,7 @@ LEARNING:
 ENTITIES:
 ${entsStr}`;
 }
+
 async function parseNL(txt, entsStr) {
   const msgs = [
     { role: 'system', content: buildPrompt(entsStr) },
@@ -321,16 +341,25 @@ async function parseNL(txt, entsStr) {
   if (data.error) throw new Error(data.error.message);
   
   const raw = data.choices[0].message.content.trim();
+  console.log("GPT RAW RESP:", raw);
   let jsonStr = raw;
-  const match = raw.match(/({[sS]*}|[[sS]*])/);
-  if (match) jsonStr = match[0];
+  let parsed;
+  const match = raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   
-  // Natively repair disjointed objects if the AI forgets to wrap multiple elements in an array
-  if (jsonStr.match(/^s*{[sS]*}s*{[sS]*}s*$/)) {
-      jsonStr = `[${jsonStr.replace(/}s*{/g, '},{')}]`;
+  if (match) {
+    jsonStr = match[0];
+    // Natively repair disjointed objects if the AI forgets to wrap multiple elements in an array
+    if (jsonStr.match(/^\s*\{[\s\S]*\}\s*\{[\s\S]*\}\s*$/)) {
+        jsonStr = `[${jsonStr.replace(/\}\s*\{/g, '},{')}]`;
+    }
+    try {
+        parsed = JSON.parse(jsonStr);
+    } catch (e) {
+        parsed = { chat: raw };
+    }
+  } else {
+    parsed = { chat: raw };
   }
-  
-  const parsed = JSON.parse(jsonStr);
   
   CHAT_HISTORY.push({ role: 'user', content: txt });
   CHAT_HISTORY.push({ role: 'assistant', content: raw });
@@ -348,18 +377,40 @@ async function executeCmds(cmds, reqEntities) {
     
     if (c.learn) {
       let m = readJson(MEMORY_FILE);
+      
+      if (c.learn.type === 'room_alias') {
+         if (!m.room_aliases) m.room_aliases = {};
+         m.room_aliases[c.learn.alias] = c.learn.target;
+      }
+      
       let rv = c.learn.value;
       if (rv) {
          if (!m.rooms) m.rooms = {};
-         if (!m.rooms[rv]) m.rooms[rv] = { lights: [], ac: {}, devices: [] };
+         if (!m.rooms[rv]) m.rooms[rv] = {};
          
-         if (c.learn.type === 'room_device' || c.learn.type === 'room' || c.learn.type === 'light') {
-            let cat = c.learn.category || (c.learn.entity_id.startsWith('light') ? 'lights' : 'devices');
-            if (!m.rooms[rv][cat]) m.rooms[rv][cat] = [];
-            if (!m.rooms[rv][cat].includes(c.learn.entity_id)) m.rooms[rv][cat].push(c.learn.entity_id);
+         if (!m.rooms[rv].lights) m.rooms[rv].lights = {};
+         if (!m.rooms[rv].covers) m.rooms[rv].covers = {};
+         if (!m.rooms[rv].sensors) m.rooms[rv].sensors = {};
+         if (!m.rooms[rv].devices) m.rooms[rv].devices = {};
+         if (!m.rooms[rv].ac) m.rooms[rv].ac = {};
+         
+         if (['room_device', 'room', 'light', 'cover', 'sensor'].includes(c.learn.type)) {
+            let cat = c.learn.category || (c.learn.entity_id?.startsWith('light') ? 'lights' : c.learn.entity_id?.startsWith('cover') ? 'covers' : c.learn.entity_id?.startsWith('sensor') ? 'sensors' : 'devices');
+            let sub = c.learn.sub_category || 'default';
+            
+            if (Array.isArray(m.rooms[rv][cat])) {
+               m.rooms[rv][cat] = { default: m.rooms[rv][cat] };
+            }
+            if (!m.rooms[rv][cat][sub]) m.rooms[rv][cat][sub] = [];
+            if (!m.rooms[rv][cat][sub].includes(c.learn.entity_id)) m.rooms[rv][cat][sub].push(c.learn.entity_id);
          } else if (c.learn.type === 'room_ac' || c.learn.type === 'ac') {
-            if (!m.rooms[rv].ac) m.rooms[rv].ac = {};
-            m.rooms[rv].ac[c.learn.mode || 'on'] = c.learn.entity_id;
+            let sub = c.learn.sub_category || 'default';
+            if (m.rooms[rv].ac.on || m.rooms[rv].ac.off) {
+                let tempAc = { ...m.rooms[rv].ac };
+                m.rooms[rv].ac = { default: tempAc };
+            }
+            if (!m.rooms[rv].ac[sub]) m.rooms[rv].ac[sub] = {};
+            m.rooms[rv].ac[sub][c.learn.mode || 'on'] = c.learn.entity_id;
          }
       }
       writeJson(MEMORY_FILE, m);
@@ -374,6 +425,15 @@ async function executeCmds(cmds, reqEntities) {
     const ent = reqEntities.find(e => e.entity_id === eid);
     const name = ent ? ent.name : eid;
     try {
+      if (c.domain === 'cover') {
+        if (c.service === 'open_cover') {
+          c.service = 'set_cover_position';
+          c.data.position = 100;
+        } else if (c.service === 'close_cover') {
+          c.service = 'set_cover_position';
+          c.data.position = 0;
+        }
+      }
       await callSvc(c.domain, c.service, c.data);
       let actionStr = 'ON';
       if (c.service.includes('off') || c.service.includes('close')) actionStr = 'OFF';
@@ -422,6 +482,7 @@ loadSchedules();
 
 // --- HTTP SERVER ---
 const server = http.createServer(async (req, res) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -435,6 +496,52 @@ const server = http.createServer(async (req, res) => {
         fs.writeFileSync(path.join(DIR, 'config.json'), JSON.stringify(payload, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true }));
       } catch (e) { res.writeHead(500); res.end(e.message); }
+    });
+    return;
+  }
+
+  // --- SMS PROXY ENDPOINT ---
+  if (req.method === 'POST' && req.url === '/api/send-otp') {
+    let body = ''; req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        let { phoneNumber, otp } = JSON.parse(body);
+        phoneNumber = String(phoneNumber || '').trim();
+        otp = String(otp || '').trim();
+        
+        if (!phoneNumber || !otp || !/^[0-9]{10}$/.test(phoneNumber) || !/^[0-9]{6}$/.test(otp)) {
+          console.error(`Received invalid format. Phone: [${phoneNumber}] length=${phoneNumber.length}, OTP: [${otp}] length=${otp.length}`);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: `Invalid format received exactly as: phone=[${phoneNumber}], otp=[${otp}]` }));
+        }
+
+        const msg = `Your OTP for login is ${otp}. It is valid for 5 minutes. Do not share this code with anyone. Contact support if the OTP was not requested by you - Ziamore.`;
+        const smsUrl = `https://sms.textspeed.in/vb/apikey.php?apikey=gdCD8AQiQWAPDTS2&senderid=ZIAMRE&templateid=1707177390087516591&number=${phoneNumber}&message=${encodeURIComponent(msg)}`;
+        
+        https.get(smsUrl, (smsRes) => {
+          let data = '';
+          smsRes.on('data', chunk => data += chunk);
+          smsRes.on('end', () => {
+            let parsedData = {};
+            try { parsedData = JSON.parse(data); } catch(err) { parsedData = { raw: data }; }
+            
+            if (smsRes.statusCode >= 400) {
+              res.writeHead(smsRes.statusCode, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: 'SMS Provider Error: ' + smsRes.statusCode, data: parsedData }));
+            } else {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, message: 'OTP dispatched via proxy.', data: parsedData }));
+            }
+          });
+        }).on('error', (e) => {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'SMS proxy failed: ' + e.message }));
+        });
+      } catch (e) {
+        console.error("Top level caught:", e.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
     });
     return;
   }
@@ -492,7 +599,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const { text, entities } = JSON.parse(body);
         let q = (text || '').toLowerCase().trim();
-        const entsStr = (entities || []).map(e => `${e.name}|${e.entity_id}|${e.state}`).join('n') || '(none)';
+        const entsStr = (entities || []).map(e => `${e.name}|${e.entity_id}|${e.state}`).join('\n') || '(none)';
 
         // 1. Follow-up "YES"
         if (q === 'yes' || q === 'yeah' || q === 'yep') {
@@ -504,19 +611,26 @@ const server = http.createServer(async (req, res) => {
 				if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
 				else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`); // Simplification for text UI
 			  }
-			  return replyJSON(res, { chat: outputs.join('n') });
+			  return replyJSON(res, { chat: outputs.join('\n') });
             }
         } else {
             PENDING_REPEAT = null;
         }
 
-        // 2. LOGS & HISTORY
+        // 2. LOGS & HISTORY & MEMORY
+        if (q.includes('clear') && q.includes('memory')) {
+            CHAT_HISTORY = [];
+            writeJson(MEMORY_FILE, { rooms: {} });
+            return replyJSON(res, { chat: "Done! I have wiped my memory file and conversation context." });
+        }
+        
         if ((q.includes('history') || q.includes('log')) && (q.includes('delete') || q.includes('remove') || q.includes('clear')) && q.includes('all')) {
             writeJson(HISTORY_FILE, []);
+            CHAT_HISTORY = []; // Good idea to clear chat history as well
             return replyJSON(res, { chat: "Done boss! I have cleared your entire action history." });
         }
 
-        const logMatch = q.match(/lasts*(d+)?s*log/);
+        const logMatch = q.match(/last\s*(\d+)?\s*log/);
         if (logMatch || q.includes('last logs') || q.includes('show logs') || q === 'logs' || q === 'logs.') {
           const count = parseInt(logMatch?.[1] || 10);
           const h = readJson(HISTORY_FILE);
@@ -554,7 +668,7 @@ const server = http.createServer(async (req, res) => {
 
         // 4. SCHEDULES MANAGEMENT
         if (q.includes('schedule') || q.includes('schedules')) {
-          if (q.match(/b(show|what|list)b/)) {
+          if (q.match(/\b(show|what|list)\b/)) {
             const sum = readJson(SCHEDULE_FILE).length;
             if (sum === 0) return replyJSON(res, { chat: "No schedules found boss." });
             return replyJSON(res, { chat: `You have ${sum} scheduled actions boss. Check the schedule icon at the top for details!` });
@@ -567,7 +681,7 @@ const server = http.createServer(async (req, res) => {
               return replyJSON(res, { chat: "Done boss! I have removed all schedules." });
             }
             
-            const tMatch = q.match(/(d+):(d+)/);
+            const tMatch = q.match(/(\d+):(\d+)/);
             if (tMatch) {
                 const targetTimeStr = `${tMatch[1]}:${tMatch[2]}`;
                 const initialLen = s.length;
@@ -586,13 +700,13 @@ const server = http.createServer(async (req, res) => {
         }
 
         // 5. TIME LOOKBACK
-        if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(d+)s*miss*befor/)) {
+        if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(\d+)\s*mis\s*befor/)) {
           let target = Date.now();
           let windowMs = 15 * 60 * 1000;
           if (q.includes('yesterday')) target -= 24 * 3600 * 1000;
           else {
-            let m = q.match(/(d+)s*(hour|minute|day|min|mis)s?s*(?:ago|before|befor)/);
-            if (!m) m = q.match(/(?:before|befor)s*(d+)s*(hour|minute|day|min|mis)s?/);
+            let m = q.match(/(\d+)\s*(hour|minute|day|min|mis)s?\s*(?:ago|before|befor)/);
+            if (!m) m = q.match(/(?:before|befor)\s*(\d+)\s*(hour|minute|day|min|mis)s?/);
             if (m) {
               const v = parseInt(m[1]), u = m[2];
               if (u === 'hour') target -= v * 3600 * 1000;
@@ -602,7 +716,7 @@ const server = http.createServer(async (req, res) => {
           }
           
           let countLimit = 0;
-          let limitMatch = q.match(/(?:show|what).*(?:mes)?(d+)s*action/);
+          let limitMatch = q.match(/(?:show|what).*(?:me\s)?(\d+)\s*action/);
           if (limitMatch) countLimit = parseInt(limitMatch[1]);
           
           const h = readJson(HISTORY_FILE);
@@ -629,8 +743,8 @@ const server = http.createServer(async (req, res) => {
         // 5. DELAYS & SCHEDULES
         let delayMs = 0;
         let niceTime = '';
-        const delayMatch = q.match(/after (d+) (second|minute|hour)s?/);
-        const atMatch = q.match(/at (d+)(?::(d+))?s*(pm|am)?/);
+        const delayMatch = q.match(/after (\d+) (second|minute|hour)s?/);
+        const atMatch = q.match(/at (\d+)(?::(\d+))?\s*(pm|am)?/);
         
         let cleanedQ = q;
         if (delayMatch) {
@@ -673,7 +787,7 @@ const server = http.createServer(async (req, res) => {
           for (let i = 0; i < results.length; i++) {
               if (results[i].err) outputs.push(`${results[i].name} failed: ${results[i].err}`);
           }
-          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('n') });
+          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\\n') });
           
           return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0].chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
         }
@@ -681,9 +795,6 @@ const server = http.createServer(async (req, res) => {
         return replyJSON(res, { chat: `Ran into an issue boss: ${e.message}` });
       }
     });
-    return;
-  }
-
   if (req.method === 'POST' && req.url === '/api/transcribe') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', async () => {
@@ -691,8 +802,8 @@ const server = http.createServer(async (req, res) => {
         const { audioBase64, ext } = JSON.parse(body);
         const format = ext || 'webm';
         const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const pre = `--${boundary}rnContent-Disposition: form-data; name="file"; filename="audio.${format}"rnContent-Type: audio/${format}rnrn`;
-        const post = `rn--${boundary}rnContent-Disposition: form-data; name="model"rnrnwhisper-1rn--${boundary}--`;
+        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
+        const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
         const payload = Buffer.concat([
           Buffer.from(pre, 'utf8'),
           Buffer.from(audioBase64, 'base64'),
