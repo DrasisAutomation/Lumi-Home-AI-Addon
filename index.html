@@ -984,8 +984,12 @@ async function startVoice(){
     try { voiceRec.start(); return; } catch(e) {}
   }
   
-  // SEAMLESS MOBILE MICROPHONE (WebRTC MediaRecorder)
+  // WEBRTC MEDIARECORDER (Seamless) OR NATIVE FALLBACK
+  let useNativeFallback = false;
+  
   try {
+     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Not supported");
+     
      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
      document.getElementById('voice-ov').classList.add('open');
      document.getElementById('voice-interim').innerHTML = 'Listening...';
@@ -1043,8 +1047,57 @@ async function startVoice(){
      
      mediaRecorder.start();
   } catch(err) {
-      toast("Mic access denied or unavailable.");
-      closeVoice();
+      useNativeFallback = true;
+  }
+  
+  if (useNativeFallback) {
+      // NATIVE OS CAPTURE FALLBACK (Forced OS-level Microphone)
+      let nv = document.getElementById('native-voice');
+      if(!nv) {
+         nv = document.createElement('input');
+         nv.type = 'file';
+         nv.accept = 'audio/*';
+         nv.capture = 'microphone';
+         nv.id = 'native-voice';
+         nv.style.position = 'absolute';
+         nv.style.left = '-9999px';
+         nv.style.opacity = '0';
+         document.body.appendChild(nv);
+         
+         nv.addEventListener('change', async e => {
+           const file = e.target.files[0];
+           if(!file) return;
+           
+           document.getElementById('voice-ov').classList.add('open');
+           document.getElementById('voice-interim').innerHTML='Thinking...';
+           
+           const reader = new FileReader();
+           reader.readAsDataURL(file);
+           reader.onloadend = async () => {
+              const base64data = reader.result.split(',')[1];
+              // Use m4a as safest mobile container decoding for OpenAI Whisper
+              const ext = file.name.split('.').pop() || 'm4a'; 
+              try {
+                const r = await fetch(`${API_BASE}/api/transcribe`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ audioBase64: base64data, ext })
+                });
+                const ans = await r.json();
+                if(ans.error) throw new Error(ans.error);
+                const final = ans.text ? ans.text.trim() : '';
+                if(final){
+                  const id=chatOn?'cmd2':'cmd';
+                  document.getElementById(id).value=final;
+                  send(chatOn);
+                }
+              } catch(err) { toast('Voice error: ' + err.message); }
+              closeVoice();
+           };
+           nv.value = ''; // Reset
+         });
+      }
+      nv.click();
   }
 }
 function cancelVoice() {
