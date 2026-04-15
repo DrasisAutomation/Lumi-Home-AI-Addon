@@ -424,23 +424,65 @@ async function executeCmds(cmds, reqEntities) {
     const eid = c.data?.entity_id;
     const ent = reqEntities.find(e => e.entity_id === eid);
     const name = ent ? ent.name : eid;
+    
+    // FIX: Check if this is a switch entity being used for curtain/cover control
+    // If the entity starts with "switch." and the service suggests cover operation,
+    // we need to map it correctly
     try {
-      if (c.domain === 'cover') {
-        if (c.service === 'open_cover') {
-          c.service = 'set_cover_position';
-          c.data.position = 100;
-        } else if (c.service === 'close_cover') {
-          c.service = 'set_cover_position';
-          c.data.position = 0;
+      // First, determine the correct domain based on the entity_id prefix
+      const entityPrefix = eid?.split('.')[0] || c.domain;
+      
+      // If the domain from command doesn't match the entity prefix, use the entity prefix
+      let actualDomain = c.domain;
+      let actualService = c.service;
+      let actualData = { ...c.data };
+      
+      if (entityPrefix && entityPrefix !== c.domain) {
+        console.log(`Domain mismatch: command says ${c.domain} but entity is ${entityPrefix}. Using ${entityPrefix}.`);
+        actualDomain = entityPrefix;
+        
+        // Map services appropriately based on the actual domain
+        if (entityPrefix === 'switch' || entityPrefix === 'input_boolean' || entityPrefix === 'light') {
+          // For switch entities, always use turn_on/turn_off
+          if (c.service.includes('open') || c.service === 'set_cover_position') {
+            actualService = 'turn_on';
+          } else if (c.service.includes('close')) {
+            actualService = 'turn_off';
+          }
+          // Remove position data as switches don't support it
+          delete actualData.position;
+        } else if (entityPrefix === 'cover') {
+          // For cover entities, map turn_on/turn_off to open/close
+          if (c.service === 'turn_on') {
+            actualService = 'open_cover';
+          } else if (c.service === 'turn_off') {
+            actualService = 'close_cover';
+          }
         }
       }
-      await callSvc(c.domain, c.service, c.data);
+      
+      // Handle cover-specific position logic
+      if (actualDomain === 'cover') {
+        if (actualService === 'open_cover') {
+          actualService = 'set_cover_position';
+          actualData.position = 100;
+        } else if (actualService === 'close_cover') {
+          actualService = 'set_cover_position';
+          actualData.position = 0;
+        }
+      }
+      
+      await callSvc(actualDomain, actualService, actualData);
+      
       let actionStr = 'ON';
-      if (c.service.includes('off') || c.service.includes('close')) actionStr = 'OFF';
+      if (actualService.includes('off') || actualService.includes('close')) actionStr = 'OFF';
+      if (actualData.position === 0) actionStr = 'OFF';
+      if (actualData.position === 100) actionStr = 'ON';
       
       logAction(name, actionStr, c);
       results.push({ name, err: null });
     } catch (e) {
+      console.error(`Failed to execute command for ${eid}:`, e.message);
       results.push({ name, err: e.message });
     }
   }
