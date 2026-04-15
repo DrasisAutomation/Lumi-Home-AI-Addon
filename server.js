@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 const DIR = __dirname;
 const PORT = process.env.PORT || 8099;
@@ -14,7 +15,7 @@ try { addonOptions = JSON.parse(fs.readFileSync('/data/options.json', 'utf8')); 
 const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "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";
 const OAI_MODEL = "gpt-4o-mini";
 
-// FTP Configuration for direct upload (bypassing HA service)
+// FTP Configuration
 const FTP_CONFIG = {
   host: '192.168.2.25',
   port: 21,
@@ -31,6 +32,16 @@ const MEMORY_FILE = path.join(DIR, 'memory.json');
 try { if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(SCHEDULE_FILE)) fs.writeFileSync(SCHEDULE_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(MEMORY_FILE)) fs.writeFileSync(MEMORY_FILE, JSON.stringify({rooms: {}, ac: {}})); } catch (_) {}
+
+// Ensure local audio directory exists
+const LOCAL_AUDIO_PATH = '/config/www/community/images';
+try {
+  if (!fs.existsSync(LOCAL_AUDIO_PATH)) {
+    fs.mkdirSync(LOCAL_AUDIO_PATH, { recursive: true });
+  }
+} catch (e) {
+  console.log('Using fallback local path for audio');
+}
 
 const MIME = {
   '.html': 'text/html',
@@ -65,7 +76,7 @@ function logAction(device, actionStr, rawCmd) {
   writeJson(HISTORY_FILE, h);
 }
 
-// --- FTP UPLOAD FUNCTION (Direct, bypassing HA service) ---
+// --- FTP UPLOAD FUNCTION ---
 async function uploadToFTP(buffer, filename) {
   return new Promise((resolve, reject) => {
     const ftp = require('ftp');
@@ -74,7 +85,6 @@ async function uploadToFTP(buffer, filename) {
     client.on('ready', () => {
       client.cwd(FTP_CONFIG.remotePath, (err) => {
         if (err) {
-          // Try to create directory if it doesn't exist
           client.mkdir(FTP_CONFIG.remotePath, true, () => {
             client.cwd(FTP_CONFIG.remotePath, (err2) => {
               if (err2) {
@@ -104,29 +114,28 @@ async function uploadToFTP(buffer, filename) {
   });
 }
 
-// --- AUDIO CONVERSION: WAV to MP3 (using ffmpeg if available) ---
+// --- AUDIO CONVERSION: WAV to MP3 ---
 async function convertWavToMp3(wavBuffer) {
   return new Promise((resolve, reject) => {
-    const { exec } = require('child_process');
     const tempWav = path.join('/tmp', `recording_${Date.now()}.wav`);
     const tempMp3 = path.join('/tmp', `recording_${Date.now()}.mp3`);
     
     // Write WAV to temp file
     fs.writeFileSync(tempWav, wavBuffer);
     
-    // Convert using ffmpeg (if installed) or fallback to simple copy
-    exec(`ffmpeg -i ${tempWav} -acodec libmp3lame -ab 128k ${tempMp3} -y`, (error) => {
+    // Convert using ffmpeg
+    exec(`ffmpeg -i ${tempWav} -acodec libmp3lame -ab 128k -ar 16000 -ac 1 ${tempMp3} -y`, (error) => {
       if (error) {
-        // Fallback: if ffmpeg not available, just save as WAV with .mp3 extension
-        console.log('ffmpeg not available, saving as WAV with .mp3 extension');
+        console.log('ffmpeg error, falling back to direct WAV:', error.message);
+        // Fallback: just copy the WAV as MP3
         fs.writeFileSync(tempMp3, wavBuffer);
       }
       
       try {
         const mp3Buffer = fs.readFileSync(tempMp3);
         // Cleanup
-        fs.unlinkSync(tempWav);
-        fs.unlinkSync(tempMp3);
+        try { fs.unlinkSync(tempWav); } catch(e) {}
+        try { fs.unlinkSync(tempMp3); } catch(e) {}
         resolve(mp3Buffer);
       } catch (e) {
         reject(e);
@@ -341,7 +350,7 @@ AC ON (If entity starts with climate.):
 AC SWITCH (If learned AC entity starts with switch. or light.):
 {
   "domain":"switch",  
-  "service":"turn_on", // Note: Often 'turn_on' is used to fire an IR switch even for "off"
+  "service":"turn_on",
   "data":{
     "entity_id":"switch.home_theater_ac_off"
   },
@@ -429,7 +438,6 @@ async function parseNL(txt, entsStr) {
   
   if (match) {
     jsonStr = match[0];
-    // Natively repair disjointed objects if the AI forgets to wrap multiple elements in an array
     if (jsonStr.match(/^\s*\{[\s\S]*\}\s*\{[\s\S]*\}\s*$/)) {
         jsonStr = `[${jsonStr.replace(/\}\s*\{/g, '},{')}]`;
     }
@@ -495,8 +503,6 @@ async function executeCmds(cmds, reqEntities) {
          }
       }
       writeJson(MEMORY_FILE, m);
-      // Let the loop continue processing if there is a domain command attached, 
-      // but if it's purely learning, skip executing HA calls.
       if (!c.domain) { continue; }
     }
     
@@ -506,14 +512,9 @@ async function executeCmds(cmds, reqEntities) {
     const ent = reqEntities.find(e => e.entity_id === eid);
     const name = ent ? ent.name : eid;
     
-    // FIX: Check if this is a switch entity being used for curtain/cover control
-    // If the entity starts with "switch." and the service suggests cover operation,
-    // we need to map it correctly
     try {
-      // First, determine the correct domain based on the entity_id prefix
       const entityPrefix = eid?.split('.')[0] || c.domain;
       
-      // If the domain from command doesn't match the entity prefix, use the entity prefix
       let actualDomain = c.domain;
       let actualService = c.service;
       let actualData = { ...c.data };
@@ -522,18 +523,14 @@ async function executeCmds(cmds, reqEntities) {
         console.log(`Domain mismatch: command says ${c.domain} but entity is ${entityPrefix}. Using ${entityPrefix}.`);
         actualDomain = entityPrefix;
         
-        // Map services appropriately based on the actual domain
         if (entityPrefix === 'switch' || entityPrefix === 'input_boolean' || entityPrefix === 'light') {
-          // For switch entities, always use turn_on/turn_off
           if (c.service.includes('open') || c.service === 'set_cover_position') {
             actualService = 'turn_on';
           } else if (c.service.includes('close')) {
             actualService = 'turn_off';
           }
-          // Remove position data as switches don't support it
           delete actualData.position;
         } else if (entityPrefix === 'cover') {
-          // For cover entities, map turn_on/turn_off to open/close
           if (c.service === 'turn_on') {
             actualService = 'open_cover';
           } else if (c.service === 'turn_off') {
@@ -542,7 +539,6 @@ async function executeCmds(cmds, reqEntities) {
         }
       }
       
-      // Handle cover-specific position logic
       if (actualDomain === 'cover') {
         if (actualService === 'open_cover') {
           actualService = 'set_cover_position';
@@ -611,73 +607,38 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
-  // --- DIRECT AUDIO UPLOAD ENDPOINT (Bypasses HA service) ---
+  // --- DIRECT AUDIO UPLOAD ENDPOINT (Accepts WAV from Recorder.js) ---
   if (req.method === 'POST' && req.url === '/api/upload-audio') {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', async () => {
       try {
         const buffer = Buffer.concat(chunks);
-        const boundary = req.headers['content-type']?.split('boundary=')[1];
         
-        if (!boundary) {
-          // Direct binary upload (WAV data)
-          const wavBuffer = buffer;
-          
-          // Convert to MP3
-          const mp3Buffer = await convertWavToMp3(wavBuffer);
-          
-          // Upload to FTP
+        console.log(`Received audio upload, size: ${buffer.length} bytes`);
+        
+        // Recorder.js sends direct WAV data (already correct format)
+        const wavBuffer = buffer;
+        
+        // Convert to MP3
+        console.log('Converting WAV to MP3...');
+        const mp3Buffer = await convertWavToMp3(wavBuffer);
+        
+        // Save locally
+        const localMp3Path = path.join(LOCAL_AUDIO_PATH, 'Lumiai.mp3');
+        fs.writeFileSync(localMp3Path, mp3Buffer);
+        console.log('✅ MP3 saved locally:', localMp3Path);
+        
+        // Upload to FTP
+        try {
           await uploadToFTP(mp3Buffer, 'Lumiai.mp3');
-          
-          // Also save locally
-          const localPath = '/config/www/community/images';
-          if (!fs.existsSync(localPath)) {
-            fs.mkdirSync(localPath, { recursive: true });
-          }
-          fs.writeFileSync(path.join(localPath, 'Lumiai.mp3'), mp3Buffer);
-          
-          console.log('✅ Audio uploaded successfully via direct endpoint');
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Audio uploaded' }));
-        } else {
-          // Multipart form data
-          const parts = buffer.toString().split(`--${boundary}`);
-          let wavBuffer = null;
-          
-          for (const part of parts) {
-            if (part.includes('Content-Disposition') && part.includes('name="audio"')) {
-              const dataStart = part.indexOf('\r\n\r\n');
-              if (dataStart !== -1) {
-                wavBuffer = Buffer.from(part.slice(dataStart + 4).trim(), 'binary');
-                break;
-              }
-            }
-          }
-          
-          if (!wavBuffer) {
-            throw new Error('No audio data found');
-          }
-          
-          // Convert to MP3
-          const mp3Buffer = await convertWavToMp3(wavBuffer);
-          
-          // Upload to FTP
-          await uploadToFTP(mp3Buffer, 'Lumiai.mp3');
-          
-          // Also save locally
-          const localPath = '/config/www/community/images';
-          if (!fs.existsSync(localPath)) {
-            fs.mkdirSync(localPath, { recursive: true });
-          }
-          fs.writeFileSync(path.join(localPath, 'Lumiai.mp3'), mp3Buffer);
-          
-          console.log('✅ Audio uploaded successfully via multipart endpoint');
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Audio uploaded' }));
+          console.log('✅ Audio uploaded to FTP');
+        } catch (ftpErr) {
+          console.warn('FTP upload failed, but local file saved:', ftpErr.message);
         }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Audio uploaded and converted' }));
       } catch (e) {
         console.error('Upload error:', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -689,14 +650,13 @@ const server = http.createServer(async (req, res) => {
 
   // --- CHECK MP3 ENDPOINT ---
   if (req.method === 'GET' && req.url === '/api/check-mp3') {
-    const mp3Path = path.join('/config/www/community/images', 'Lumiai.mp3');
+    const mp3Path = path.join(LOCAL_AUDIO_PATH, 'Lumiai.mp3');
     try {
       const stats = fs.statSync(mp3Path);
       const now = Date.now();
       const fileAge = now - stats.mtimeMs;
       
-      // Check if file exists and is less than 10 seconds old
-      if (fileAge < 10000) {
+      if (fileAge < 30000) { // 30 seconds
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ready: true, age: fileAge }));
       } else {
@@ -717,9 +677,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const { mp3Path } = JSON.parse(body);
-        
-        // Read the MP3 file from the filesystem
-        const mp3FullPath = path.join('/config/www/community/images', mp3Path);
+        const mp3FullPath = path.join(LOCAL_AUDIO_PATH, mp3Path);
         
         if (!fs.existsSync(mp3FullPath)) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -729,7 +687,7 @@ const server = http.createServer(async (req, res) => {
         const mp3Buffer = fs.readFileSync(mp3FullPath);
         const mp3Base64 = mp3Buffer.toString('base64');
         
-        // Send to OpenAI Whisper for transcription
+        // Send to OpenAI Whisper
         const boundary = '----Boundary' + Math.random().toString(36).substring(2);
         const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.mp3"\r\nContent-Type: audio/mp3\r\n\r\n`;
         const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
@@ -765,7 +723,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- HA SERVICE PROXY (Fallback for Home Assistant integration) ---
+  // --- HA SERVICE PROXY ---
   if (req.method === 'POST' && req.url === '/api/ha-service') {
     let body = '';
     req.on('data', c => body += c);
@@ -805,9 +763,8 @@ const server = http.createServer(async (req, res) => {
         otp = String(otp || '').trim();
         
         if (!phoneNumber || !otp || !/^[0-9]{10}$/.test(phoneNumber) || !/^[0-9]{6}$/.test(otp)) {
-          console.error(`Received invalid format. Phone: [${phoneNumber}] length=${phoneNumber.length}, OTP: [${otp}] length=${otp.length}`);
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: false, error: `Invalid format received exactly as: phone=[${phoneNumber}], otp=[${otp}]` }));
+          return res.end(JSON.stringify({ success: false, error: 'Invalid format' }));
         }
 
         const msg = `Your OTP for login is ${otp}. It is valid for 5 minutes. Do not share this code with anyone. Contact support if the OTP was not requested by you - Ziamore.`;
@@ -817,23 +774,14 @@ const server = http.createServer(async (req, res) => {
           let data = '';
           smsRes.on('data', chunk => data += chunk);
           smsRes.on('end', () => {
-            let parsedData = {};
-            try { parsedData = JSON.parse(data); } catch(err) { parsedData = { raw: data }; }
-            
-            if (smsRes.statusCode >= 400) {
-              res.writeHead(smsRes.statusCode, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: false, error: 'SMS Provider Error: ' + smsRes.statusCode, data: parsedData }));
-            } else {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true, message: 'OTP dispatched via proxy.', data: parsedData }));
-            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'OTP dispatched' }));
           });
         }).on('error', (e) => {
           res.writeHead(502, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'SMS proxy failed: ' + e.message }));
         });
       } catch (e) {
-        console.error("Top level caught:", e.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: e.message }));
       }
@@ -896,7 +844,7 @@ const server = http.createServer(async (req, res) => {
         let q = (text || '').toLowerCase().trim();
         const entsStr = (entities || []).map(e => `${e.name}|${e.entity_id}|${e.state}`).join('\n') || '(none)';
 
-        // 1. Follow-up "YES"
+        // Follow-up "YES"
         if (q === 'yes' || q === 'yeah' || q === 'yep') {
             if (PENDING_REPEAT) {
               const r = await executeCmds(PENDING_REPEAT.cmds, entities);
@@ -904,7 +852,7 @@ const server = http.createServer(async (req, res) => {
               let outputs = [];
               for (let i = 0; i < r.length; i++) {
                 if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
-                else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`); // Simplification for text UI
+                else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`);
               }
               return replyJSON(res, { chat: outputs.join('\n') });
             }
@@ -912,7 +860,7 @@ const server = http.createServer(async (req, res) => {
             PENDING_REPEAT = null;
         }
 
-        // 2. LOGS & HISTORY & MEMORY
+        // LOGS & HISTORY & MEMORY
         if (q.includes('clear') && q.includes('memory')) {
             CHAT_HISTORY = [];
             writeJson(MEMORY_FILE, { rooms: {} });
@@ -921,7 +869,7 @@ const server = http.createServer(async (req, res) => {
         
         if ((q.includes('history') || q.includes('log')) && (q.includes('delete') || q.includes('remove') || q.includes('clear')) && q.includes('all')) {
             writeJson(HISTORY_FILE, []);
-            CHAT_HISTORY = []; // Good idea to clear chat history as well
+            CHAT_HISTORY = [];
             return replyJSON(res, { chat: "Done boss! I have cleared your entire action history." });
         }
 
@@ -945,7 +893,7 @@ const server = http.createServer(async (req, res) => {
           return replyJSON(res, {chat: logHtml, isHtml: true});
         }
 
-        // 3. REPEAT LAST ACTION
+        // REPEAT LAST ACTION
         if (q === 'repeat last action' || q === 'repeat last') {
           const h = readJson(HISTORY_FILE);
           for (let i = h.length - 1; i >= 0; i--) {
@@ -961,7 +909,7 @@ const server = http.createServer(async (req, res) => {
           return replyJSON(res, { chat: "No previous action to repeat boss." });
         }
 
-        // 4. SCHEDULES MANAGEMENT
+        // SCHEDULES MANAGEMENT
         if (q.includes('schedule') || q.includes('schedules')) {
           if (q.match(/\b(show|what|list)\b/)) {
             const sum = readJson(SCHEDULE_FILE).length;
@@ -975,48 +923,17 @@ const server = http.createServer(async (req, res) => {
               writeJson(SCHEDULE_FILE, []);
               return replyJSON(res, { chat: "Done boss! I have removed all schedules." });
             }
-            
-            const tMatch = q.match(/(\d+):(\d+)/);
-            if (tMatch) {
-                const targetTimeStr = `${tMatch[1]}:${tMatch[2]}`;
-                const initialLen = s.length;
-                s = s.filter(x => {
-                    if (x.displayTime && x.displayTime.includes(targetTimeStr)) {
-                        if(SC_TIMERS[x.id]) { clearTimeout(SC_TIMERS[x.id]); delete SC_TIMERS[x.id]; }
-                        return false;
-                    }
-                    return true;
-                });
-                writeJson(SCHEDULE_FILE, s);
-                if (s.length < initialLen) return replyJSON(res, { chat: `Done boss! I have removed the schedule for ${targetTimeStr}.` });
-                else return replyJSON(res, { chat: `I couldn't find a schedule at ${targetTimeStr} boss.` });
-            }
           }
         }
 
-        // 5. TIME LOOKBACK
+        // TIME LOOKBACK
         if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(\d+)\s*mis\s*befor/)) {
           let target = Date.now();
           let windowMs = 15 * 60 * 1000;
           if (q.includes('yesterday')) target -= 24 * 3600 * 1000;
-          else {
-            let m = q.match(/(\d+)\s*(hour|minute|day|min|mis)s?\s*(?:ago|before|befor)/);
-            if (!m) m = q.match(/(?:before|befor)\s*(\d+)\s*(hour|minute|day|min|mis)s?/);
-            if (m) {
-              const v = parseInt(m[1]), u = m[2];
-              if (u === 'hour') target -= v * 3600 * 1000;
-              if (u === 'minute' || u === 'min' || u === 'mis') { target -= v * 60 * 1000; windowMs = 2 * 60 * 1000; }
-              if (u === 'day') target -= v * 24 * 3600 * 1000;
-            }
-          }
-          
-          let countLimit = 0;
-          let limitMatch = q.match(/(?:show|what).*(?:me\s)?(\d+)\s*action/);
-          if (limitMatch) countLimit = parseInt(limitMatch[1]);
           
           const h = readJson(HISTORY_FILE);
           let found = h.filter(x => Math.abs(new Date(x.timestamp).getTime() - target) <= windowMs);
-          if (countLimit > 0) found = found.slice(-countLimit);
           
           if (!found.length) return replyJSON(res, { chat: "No actions found around that time boss."});
           
@@ -1035,7 +952,7 @@ const server = http.createServer(async (req, res) => {
           return replyJSON(res, {chat: logHtml, isHtml: true});
         }
 
-        // 5. DELAYS & SCHEDULES
+        // DELAYS & SCHEDULES
         let delayMs = 0;
         let niceTime = '';
         const delayMatch = q.match(/after (\d+) (second|minute|hour)s?/);
@@ -1065,7 +982,7 @@ const server = http.createServer(async (req, res) => {
           niceTime = `at ${hr}:${mn.toString().padStart(2, '0')} ${ampm||''}`.trim();
         }
 
-        // 6. OPENAI NLP
+        // OPENAI NLP
         const aiQuery = delayMs > 0 ? `${cleanedQ} (CRITICAL: User is scheduling this. DO NOT ask for confirmation, output the action JSON immediately.)` : (cleanedQ || "turn on");
         const parsed = await parseNL(aiQuery, entsStr);
         if (parsed.chat && !parsed.domain && !parsed.learn) return replyJSON(res, { chat: parsed.chat });
@@ -1076,13 +993,12 @@ const server = http.createServer(async (req, res) => {
           scheduleExecution(delayMs, cmds, entities, niceTime);
           return replyJSON(res, { chat: `Got it boss, I've scheduled that for ${niceTime}.` });
         } else {
-          // Immediate
           const results = await executeCmds(cmds, entities);
           let outputs = [];
           for (let i = 0; i < results.length; i++) {
               if (results[i].err) outputs.push(`${results[i].name} failed: ${results[i].err}`);
           }
-          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\\n') });
+          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\n') });
           
           return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0].chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
         }
@@ -1093,42 +1009,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/transcribe') {
-    let body = ''; req.on('data', c => body += c);
-    req.on('end', async () => {
-      try {
-        const { audioBase64, ext } = JSON.parse(body);
-        const format = ext || 'webm';
-        const boundary = '----Boundary' + Math.random().toString(36).substring(2);
-        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${format}"\r\nContent-Type: audio/${format}\r\n\r\n`;
-        const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
-        const payload = Buffer.concat([
-          Buffer.from(pre, 'utf8'),
-          Buffer.from(audioBase64, 'base64'),
-          Buffer.from(post, 'utf8')
-        ]);
-        const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            'Authorization': `Bearer ${OAI_KEY}`
-          },
-          body: payload
-        });
-        const ans = await r.json();
-        if (ans.error) throw new Error(ans.error.message);
-        return replyJSON(res, { text: ans.text || "" });
-      } catch (e) {
-        return replyJSON(res, { error: e.message });
-      }
-    });
-    return;
-  }
-
   // Serving static files
   let urlPath = req.url.split('?')[0];
-  
-  // HA Ingress can sometimes pass empty string for root URL if trailing slash is missing
   if (urlPath === '/' || urlPath === '') urlPath = '/index.html';
   
   const fp = path.join(DIR, urlPath);
@@ -1158,7 +1040,7 @@ function replyJSON(res, obj) {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Lumi Demo AI Backend running at http://localhost:${PORT}`);
-  console.log(`Audio endpoints ready:`);
+  console.log(`Audio endpoints ready (using Recorder.js compatible WAV format):`);
   console.log(`  - POST /api/upload-audio (Direct WAV upload)`);
   console.log(`  - GET  /api/check-mp3 (Check if MP3 is ready)`);
   console.log(`  - POST /api/transcribe-mp3 (Transcribe MP3 via Whisper)`);

@@ -13,7 +13,6 @@
     rel="stylesheet" />
   <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="/firebase-config.js"></script>
   <style>
     *,
@@ -1279,6 +1278,25 @@
 
   <script>
     /* ══════════════════════════════════════
+       DYNAMIC SCRIPT LOADER
+    ══════════════════════════════════════ */
+    function loadScript(type, url, callback) {
+      return new Promise((resolve, reject) => {
+        let script = document.createElement('script');
+        script.type = type || 'text/javascript';
+        script.src = url;
+        script.onload = () => { if (callback) callback(); resolve(); };
+        script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+        document.head.appendChild(script);
+      });
+    }
+
+    // Recorder.js global variables
+    let audioContext = null;
+    let recorder = null;
+    let recorderInitialized = false;
+
+    /* ══════════════════════════════════════
        LUCIDE ICON INIT
     ══════════════════════════════════════ */
     function initLucide() {
@@ -1384,19 +1402,47 @@
     function dico(d) { return DIM[d] || 'square'; }
 
     /* ══════════════════════════════════════
-       VOICE RECORDER CARD
+       VOICE RECORDER CARD (Using Recorder.js)
     ══════════════════════════════════════ */
-    let mediaRecorder = null;
-    let audioChunks = [];
     let audioStream = null;
     let recordingTimer = null;
     let recordingSeconds = 0;
     let recordedBlob = null;
     let isRecording = false;
 
+    // Load Recorder.js
+    async function loadRecorderJS() {
+      if (window.Recorder) {
+        recorderInitialized = true;
+        return true;
+      }
+      
+      try {
+        await loadScript('text/javascript', 'https://cdn.jsdelivr.net/gh/mattdiamond/Recorderjs@08e7abd9/dist/recorder.js');
+        recorderInitialized = true;
+        return true;
+      } catch (e) {
+        console.error('Failed to load Recorder.js:', e);
+        return false;
+      }
+    }
+
     function openVoiceCard() {
       document.getElementById('voice-card-ov').classList.add('open');
       resetVoiceCard();
+      
+      // Pre-load Recorder.js
+      if (!recorderInitialized) {
+        document.getElementById('voice-status').textContent = 'Loading recorder...';
+        loadRecorderJS().then(success => {
+          if (success) {
+            document.getElementById('voice-status').textContent = 'Ready';
+          } else {
+            document.getElementById('voice-status').textContent = 'Recorder failed to load';
+            toast('Voice recording not available');
+          }
+        });
+      }
     }
 
     function closeVoiceCard() {
@@ -1417,7 +1463,7 @@
       
       btn.classList.remove('recording');
       rings.style.display = 'none';
-      status.textContent = 'Ready';
+      status.textContent = recorderInitialized ? 'Ready' : 'Loading recorder...';
       timer.textContent = '00:00';
       doneBtn.disabled = true;
       sub.textContent = 'Tap the mic to speak';
@@ -1439,58 +1485,38 @@
     }
 
     async function startRecording() {
+      // Ensure Recorder.js is loaded
+      if (!recorderInitialized) {
+        const loaded = await loadRecorderJS();
+        if (!loaded) {
+          toast('Voice recording not available');
+          return;
+        }
+      }
+
       try {
-        // Request microphone with mobile-friendly constraints
-        const constraints = {
-          audio: {
-            channelCount: 1,
-            sampleRate: 16000,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          },
-          video: false
-        };
-
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-        } catch (err) {
-          // Fallback to simple constraints for mobile
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        }
-
-        audioStream = stream;
+        // Request microphone access
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
-        // Find supported MIME type
-        let mimeType = '';
-        const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', ''];
-        for (const t of types) {
-          if (t === '' || MediaRecorder.isTypeSupported(t)) {
-            mimeType = t;
-            break;
-          }
+        // Initialize AudioContext (must be after user gesture on mobile)
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         
-        mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-        audioChunks = [];
+        // Resume audio context if suspended (required for mobile)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const input = audioContext.createMediaStreamSource(audioStream);
         
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunks.push(event.data);
-          }
-        };
+        // Initialize Recorder.js
+        recorder = new Recorder(input, {
+          numChannels: 1,
+          sampleRate: 16000
+        });
         
-        mediaRecorder.onstop = () => {
-          const mime = mediaRecorder.mimeType || 'audio/webm';
-          recordedBlob = new Blob(audioChunks, { type: mime });
-          
-          document.getElementById('voice-done-btn').disabled = false;
-          document.getElementById('voice-status').textContent = 'Ready to send';
-          document.getElementById('voice-card-sub').textContent = 'Recording complete';
-        };
-        
-        mediaRecorder.start(1000);
+        recorder.record();
         isRecording = true;
         
         // Update UI
@@ -1514,8 +1540,11 @@
           document.getElementById('voice-timer').textContent = 
             `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
           
+          // Auto-stop at 30 seconds
           if (recordingSeconds >= 30) {
             stopRecording();
+            document.getElementById('voice-status').textContent = 'Max time reached';
+            document.getElementById('voice-done-btn').disabled = false;
           }
         }, 1000);
         
@@ -1536,9 +1565,21 @@
     }
 
     function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
+      if (recorder && isRecording) {
+        recorder.stop();
         isRecording = false;
+        
+        // Get the WAV blob
+        recorder.exportWAV(function(blob) {
+          recordedBlob = blob;
+          console.log('Recording complete, blob size:', blob.size);
+          
+          document.getElementById('voice-done-btn').disabled = false;
+          document.getElementById('voice-status').textContent = 'Ready to send';
+          document.getElementById('voice-card-sub').textContent = 'Recording complete';
+        });
+        
+        recorder.clear();
       }
       
       if (audioStream) {
@@ -1565,15 +1606,14 @@
       const status = document.getElementById('voice-status');
       
       doneBtn.disabled = true;
-      status.textContent = 'Processing...';
+      status.textContent = 'Uploading...';
       
       try {
-        // Convert to WAV
-        const wavBlob = await convertBlobToWav(recordedBlob);
-        const arrayBuffer = await wavBlob.arrayBuffer();
+        // Recorder.js already gives us WAV format, so we can upload directly
+        const arrayBuffer = await recordedBlob.arrayBuffer();
         const wavArray = Array.from(new Uint8Array(arrayBuffer));
         
-        // Upload directly to addon
+        // Upload to server
         const response = await fetch('/api/upload-audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/octet-stream' },
@@ -1583,9 +1623,9 @@
         const result = await response.json();
         
         if (result.success) {
-          status.textContent = 'Uploaded! Transcribing...';
+          status.textContent = 'Processing...';
           
-          // Poll for MP3
+          // Poll for transcription
           let attempts = 0;
           const checkInterval = setInterval(async () => {
             try {
@@ -1633,56 +1673,6 @@
         closeVoiceCard();
         toast('Failed to process recording');
       }
-    }
-
-    async function convertBlobToWav(audioBlob) {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
-      // Convert to mono 16kHz
-      let processedBuffer = audioBuffer;
-      if (audioBuffer.sampleRate !== 16000) {
-        const offlineCtx = new OfflineAudioContext(1, audioBuffer.duration * 16000, 16000);
-        const source = offlineCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(offlineCtx.destination);
-        source.start();
-        processedBuffer = await offlineCtx.startRendering();
-      }
-      
-      // Convert to WAV
-      const samples = processedBuffer.getChannelData(0);
-      const buffer = new ArrayBuffer(44 + samples.length * 2);
-      const view = new DataView(buffer);
-      
-      const writeString = (offset, str) => {
-        for (let i = 0; i < str.length; i++) {
-          view.setUint8(offset + i, str.charCodeAt(i));
-        }
-      };
-      
-      writeString(0, 'RIFF');
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, 16000, true);
-      view.setUint32(28, 16000 * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(36, 'data');
-      view.setUint32(40, samples.length * 2, true);
-      
-      for (let i = 0; i < samples.length; i++) {
-        const sample = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-      }
-      
-      audioContext.close();
-      return new Blob([buffer], { type: 'audio/wav' });
     }
 
     /* ══════════════════════════════════════
@@ -1965,6 +1955,8 @@
     (async () => {
       await loadConfig();
       connect();
+      // Pre-load Recorder.js in background
+      loadRecorderJS().catch(console.warn);
     })();
 
     function logoutSession() {
