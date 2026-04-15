@@ -709,7 +709,7 @@
 
     #toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 110px;
       left: 50%;
       transform: translateX(-50%) translateY(14px);
       background: var(--surf2);
@@ -1929,7 +1929,7 @@
       t.textContent = msg;
       t.classList.add('show');
       clearTimeout(tt);
-      tt = setTimeout(() => t.classList.remove('show'), 2600);
+      tt = setTimeout(() => t.classList.remove('show'), 2000);
     }
     function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     function e2(s) { return String(s).replace(/'/g, "\\'"); }
