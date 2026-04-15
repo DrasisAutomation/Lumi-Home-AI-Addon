@@ -1142,7 +1142,7 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd" type="text" autocomplete="off" placeholder="Ask Lumi anything…" onkeydown="onKey(event)" />
-            <button class="btn-v" onclick="openVoiceCard()" title="Voice input">
+            <button class="btn-v" onclick="triggerNativeAudio()" title="Voice input">
               <i data-lucide="mic"></i>
             </button>
             <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud">
@@ -1162,7 +1162,7 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd2" type="text" autocomplete="off" placeholder="Ask Lumi…" onkeydown="onKey2(event)" />
-            <button class="btn-v" onclick="openVoiceCard()" title="Voice">
+            <button class="btn-v" onclick="triggerNativeAudio()" title="Voice">
               <i data-lucide="mic"></i>
             </button>
             <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud">
@@ -1178,6 +1178,7 @@
   </div>
 
   <div id="toast"></div>
+  <input type="file" id="native-audio-input" accept="audio/*" capture="microphone" style="display:none" onchange="handleNativeAudio(event)">
 
   <!-- VOICE RECORDER CARD OVERLAY -->
   <div id="voice-card-ov" onclick="if(event.target===this)closeVoiceCard()">
@@ -1950,13 +1951,77 @@
     function e2(s) { return String(s).replace(/'/g, "\\'"); }
 
     /* ══════════════════════════════════════
+       NATIVE MOBILE AUDIO HANDLING
+    ══════════════════════════════════════ */
+    function triggerNativeAudio() {
+      document.getElementById('native-audio-input').click();
+    }
+
+    async function handleNativeAudio(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      toast('Uploading audio...');
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        
+        const response = await fetch('/api/upload-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: arrayBuffer
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          toast('Processing...');
+          let attempts = 0;
+          const checkInterval = setInterval(async () => {
+            try {
+              const checkRes = await fetch('/api/check-mp3');
+              const checkData = await checkRes.json();
+              if (checkData.ready) {
+                clearInterval(checkInterval);
+                const transRes = await fetch('/api/transcribe-mp3', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mp3Path: 'Lumiai.mp3' })
+                });
+                const transData = await transRes.json();
+                if (transData.text) {
+                  const inputId = chatOn ? 'cmd2' : 'cmd';
+                  document.getElementById(inputId).value = transData.text;
+                  toast('Ready! Press Enter to send');
+                } else {
+                  toast('No speech detected');
+                }
+              }
+              attempts++;
+              if (attempts >= 40) {
+                 clearInterval(checkInterval);
+                 toast('Processing timeout');
+              }
+            } catch (e) {
+              console.error('Poll error:', e);
+            }
+          }, 500);
+        } else {
+          toast('Upload failed');
+        }
+      } catch (error) {
+         console.error('Upload error:', error);
+         toast('Failed to process recording');
+      }
+      
+      event.target.value = '';
+    }
+
+    /* ══════════════════════════════════════
        BOOT
     ══════════════════════════════════════ */
     (async () => {
       await loadConfig();
       connect();
-      // Pre-load Recorder.js in background
-      loadRecorderJS().catch(console.warn);
     })();
 
     function logoutSession() {
