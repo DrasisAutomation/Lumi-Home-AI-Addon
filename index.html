@@ -707,29 +707,7 @@
       cursor: not-allowed;
     }
 
-    #toast {
-      position: fixed;
-      bottom: 110px;
-      left: 50%;
-      transform: translateX(-50%) translateY(14px);
-      background: var(--surf2);
-      border: 1px solid var(--bdr2);
-      color: var(--txt);
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 13.5px;
-      opacity: 0;
-      transition: all .22s;
-      z-index: 999;
-      pointer-events: none;
-      white-space: nowrap;
-      box-shadow: var(--sh2)
-    }
 
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
 
     /* Settings Dialog */
     #dlg-ov {
@@ -1177,7 +1155,7 @@
     </div>
   </div>
 
-  <div id="toast"></div>
+
 
   <!-- VOICE RECORDER CARD OVERLAY -->
   <div id="voice-card-ov" onclick="if(event.target===this)closeVoiceCard()">
@@ -1922,14 +1900,7 @@
     /* ══════════════════════════════════════
        TOAST & UTILS
     ══════════════════════════════════════ */
-    let tt;
-    function toast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      clearTimeout(tt);
-      tt = setTimeout(() => t.classList.remove('show'), 2000);
-    }
+    function toast(msg) {}
     function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     function e2(s) { return String(s).replace(/'/g, "\\'"); }
 
