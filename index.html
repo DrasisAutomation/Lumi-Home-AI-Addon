@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,maximum-scale=1.0" />
   <title>Lumi Home AI</title>
   <meta name="description" content="Lumi Home AI — Premium smart home assistant powered by AI" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,7 +51,6 @@
       --ff: 'Inter', system-ui, sans-serif;
     }
 
-    /* ─ Reset + Base ─ */
     html,
     body {
       height: 100%;
@@ -77,7 +76,6 @@
       display: inline-block
     }
 
-    /* ═══ TOPBAR ═══ */
     #topbar {
       flex-shrink: 0;
       height: 58px;
@@ -99,7 +97,8 @@
       align-items: center;
       gap: 10px;
       letter-spacing: -.2px;
-      color: var(--txt)
+      color: var(--txt);
+      cursor: pointer;
     }
 
     .brand-ico {
@@ -130,7 +129,6 @@
       gap: 5px
     }
 
-    /* icon button */
     .ib {
       background: none;
       border: none;
@@ -155,7 +153,6 @@
       height: 19px
     }
 
-    /* ═══ BODY ═══ */
     #body {
       display: flex;
       flex: 1;
@@ -172,7 +169,6 @@
       min-width: 0
     }
 
-    /* ── HERO ── */
     #hero {
       flex: 1;
       display: flex;
@@ -231,7 +227,6 @@
       margin-top: 2px
     }
 
-    /* ── SEARCH BAR ── */
     .sbar {
       display: flex;
       align-items: center;
@@ -330,7 +325,6 @@
       height: 17px
     }
 
-    /* speak toggle */
     .btn-spk {
       background: none;
       border: none;
@@ -362,7 +356,6 @@
       box-shadow: 0 0 0 1px rgba(138, 180, 248, .3)
     }
 
-    /* ── MESSAGES ── */
     #msgs {
       flex: 1;
       overflow-y: auto;
@@ -393,7 +386,6 @@
         opacity: 0;
         transform: translateY(8px)
       }
-
       to {
         opacity: 1;
         transform: translateY(0)
@@ -449,7 +441,6 @@
       box-shadow: var(--sh1)
     }
 
-    /* typing dots */
     .td {
       display: flex;
       gap: 5px;
@@ -474,58 +465,16 @@
     }
 
     @keyframes bo {
-
-      0%,
-      60%,
-      100% {
+      0%, 60%, 100% {
         transform: translateY(0);
         opacity: .35
       }
-
       30% {
         transform: translateY(-5px);
         opacity: 1
       }
     }
 
-    /* multi results */
-    .multi-done {
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px
-    }
-
-    .cmd-row {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 12.5px;
-      padding: 6px 11px;
-      border-radius: 9px;
-      background: var(--surf2);
-      color: var(--txt2)
-    }
-
-    .cmd-row [data-lucide] {
-      width: 13px;
-      height: 13px;
-      flex-shrink: 0
-    }
-
-    .cmd-row.ok [data-lucide] {
-      color: var(--green)
-    }
-
-    .cmd-row.err {
-      color: var(--red)
-    }
-
-    .cmd-row.err [data-lucide] {
-      color: var(--red)
-    }
-
-    /* ── BOTTOM INPUT ── */
     #inp {
       flex-shrink: 0;
       padding: 10px 20px 16px;
@@ -538,74 +487,124 @@
       margin: 0 auto;
     }
 
-    /* ═══ VOICE OVERLAY ═══ */
-    #voice-ov {
+    /* Voice Recorder Card Overlay */
+    #voice-card-ov {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(8, 8, 10, .88);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      z-index: 400;
+      background: rgba(8, 8, 10, .92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 500;
       align-items: center;
       justify-content: center;
+      padding: 20px;
+    }
+
+    #voice-card-ov.open {
+      display: flex;
+    }
+
+    .voice-card {
+      background: var(--surf);
+      border: 1px solid var(--bdr2);
+      border-radius: 28px;
+      width: 100%;
+      max-width: 380px;
+      padding: 32px 24px;
+      display: flex;
       flex-direction: column;
-      gap: 22px
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+      animation: cardIn .3s ease;
     }
 
-    #voice-ov.open {
-      display: flex
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: scale(.9) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
-    .v-rings {
+    .voice-card-header {
+      text-align: center;
+    }
+
+    .voice-card-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--txt);
+      margin-bottom: 6px;
+    }
+
+    .voice-card-header p {
+      font-size: 13px;
+      color: var(--txt3);
+    }
+
+    .voice-record-btn-container {
       position: relative;
-      width: 130px;
-      height: 130px;
+      width: 120px;
+      height: 120px;
       display: flex;
       align-items: center;
-      justify-content: center
+      justify-content: center;
     }
 
-    .ring {
+    .voice-record-rings {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .voice-record-ring {
       position: absolute;
       border-radius: 50%;
-      border: 1.5px solid rgba(138, 180, 248, .18);
-      animation: rpuls 2s ease-out infinite
+      border: 2px solid rgba(138, 180, 248, .2);
+      animation: ringPulse 2s ease-out infinite;
     }
 
-    .ring:nth-child(1) {
-      width: 64px;
-      height: 64px;
-      animation-delay: 0s
+    .voice-record-ring:nth-child(1) {
+      width: 100%;
+      height: 100%;
+      animation-delay: 0s;
     }
 
-    .ring:nth-child(2) {
-      width: 92px;
-      height: 92px;
-      animation-delay: .4s
+    .voice-record-ring:nth-child(2) {
+      width: 130%;
+      height: 130%;
+      top: -15%;
+      left: -15%;
+      animation-delay: .4s;
     }
 
-    .ring:nth-child(3) {
-      width: 122px;
-      height: 122px;
-      animation-delay: .8s
+    .voice-record-ring:nth-child(3) {
+      width: 160%;
+      height: 160%;
+      top: -30%;
+      left: -30%;
+      animation-delay: .8s;
     }
 
-    @keyframes rpuls {
+    @keyframes ringPulse {
       0% {
-        transform: scale(.7);
-        opacity: .85
+        transform: scale(.8);
+        opacity: .6;
       }
-
       100% {
         transform: scale(1.1);
-        opacity: 0
+        opacity: 0;
       }
     }
 
-    .v-btn {
-      width: 64px;
-      height: 64px;
+    .voice-record-btn {
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
       background: linear-gradient(135deg, #5f93e8, #93b8fb);
       border: none;
@@ -615,62 +614,125 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 24px rgba(138, 180, 248, .38);
-      animation: mp 1.4s ease-in-out infinite
+      box-shadow: 0 4px 30px rgba(138, 180, 248, .4);
+      transition: all .2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    @keyframes mp {
+    .voice-record-btn:active {
+      transform: scale(.95);
+    }
 
-      0%,
-      100% {
-        box-shadow: 0 4px 24px rgba(138, 180, 248, .38)
+    .voice-record-btn.recording {
+      background: linear-gradient(135deg, #f28b82, #e57373);
+      box-shadow: 0 4px 30px rgba(242, 139, 130, .4);
+      animation: btnPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes btnPulse {
+      0%, 100% {
+        box-shadow: 0 4px 30px rgba(242, 139, 130, .4);
       }
-
       50% {
-        box-shadow: 0 4px 40px rgba(138, 180, 248, .62)
+        box-shadow: 0 4px 50px rgba(242, 139, 130, .7);
       }
     }
 
-    .v-btn [data-lucide] {
-      width: 26px;
-      height: 26px;
-      color: #0f0f11
+    .voice-record-btn img,
+    .voice-record-btn svg {
+      width: 40px;
+      height: 40px;
+      filter: brightness(0) invert(0);
+      pointer-events: none;
     }
 
-    .v-label {
-      color: var(--txt);
-      font-size: 15px;
+    .voice-record-btn.recording img,
+    .voice-record-btn.recording svg {
+      filter: brightness(0) invert(1);
+    }
+
+    .voice-status {
+      font-size: 14px;
       font-weight: 500;
-      letter-spacing: .3px
+      color: var(--txt2);
+      min-height: 20px;
     }
 
-    .v-sub {
-      color: var(--txt3);
-      font-size: 12.5px;
-      min-height: 18px;
-      margin-top: -10px;
-      max-width: 280px;
-      text-align: center
+    .voice-timer {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--txt);
+      font-variant-numeric: tabular-nums;
     }
 
-    .v-cancel {
-      background: none;
-      border: 1px solid rgba(255, 255, 255, .14);
-      color: var(--txt3);
-      padding: 9px 26px;
-      border-radius: var(--rx);
-      font-size: 13px;
-      cursor: pointer;
+    .voice-actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .voice-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 500;
       font-family: var(--ff);
-      transition: all var(--trs)
+      cursor: pointer;
+      transition: all .2s ease;
+      border: none;
     }
 
-    .v-cancel:hover {
-      border-color: rgba(255, 255, 255, .28);
-      color: var(--txt)
+    .voice-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--bdr2);
+      color: var(--txt2);
     }
 
-    /* ═══ SETTINGS DIALOG ═══ */
+    .voice-btn.cancel:hover {
+      background: var(--surf2);
+      border-color: var(--bdr);
+    }
+
+    .voice-btn.done {
+      background: var(--accent);
+      color: #0f0f11;
+    }
+
+    .voice-btn.done:hover {
+      background: var(--accent-d);
+    }
+
+    .voice-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      background: var(--surf2);
+      border: 1px solid var(--bdr2);
+      color: var(--txt);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      opacity: 0;
+      transition: all .22s;
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: var(--sh2)
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    /* Settings Dialog */
     #dlg-ov {
       display: none;
       position: fixed;
@@ -706,7 +768,6 @@
         transform: scale(.96) translateY(10px);
         opacity: 0
       }
-
       to {
         transform: scale(1) translateY(0);
         opacity: 1
@@ -782,16 +843,6 @@
       padding: 18px 22px 0
     }
 
-    .dlg-body::-webkit-scrollbar {
-      width: 3px
-    }
-
-    .dlg-body::-webkit-scrollbar-thumb {
-      background: var(--surf3);
-      border-radius: 2px
-    }
-
-    /* sec header */
     .sh {
       display: flex;
       align-items: center;
@@ -824,7 +875,6 @@
       border-radius: var(--rx)
     }
 
-    /* search in dialog */
     .dsrch {
       display: flex;
       align-items: center;
@@ -834,12 +884,7 @@
       border-radius: 10px;
       padding: 0 12px;
       height: 40px;
-      margin-bottom: 10px;
-      transition: border-color var(--trs)
-    }
-
-    .dsrch:focus-within {
-      border-color: rgba(138, 180, 248, .32)
+      margin-bottom: 10px
     }
 
     .dsrch [data-lucide] {
@@ -859,11 +904,6 @@
       font-family: var(--ff)
     }
 
-    .dsrch input::placeholder {
-      color: var(--txt3)
-    }
-
-    /* entity list */
     #dlg-ent-list {
       max-height: 230px;
       overflow-y: auto;
@@ -872,30 +912,16 @@
       background: var(--bg)
     }
 
-    #dlg-ent-list::-webkit-scrollbar {
-      width: 3px
-    }
-
-    #dlg-ent-list::-webkit-scrollbar-thumb {
-      background: var(--surf3);
-      border-radius: 2px
-    }
-
     .de-r {
       display: flex;
       align-items: center;
       gap: 9px;
       padding: 8px 12px;
       border-bottom: 1px solid rgba(255, 255, 255, .04);
-      transition: background var(--trs)
     }
 
     .de-r:last-child {
       border-bottom: none
-    }
-
-    .de-r:hover {
-      background: var(--surf)
     }
 
     .de-ico {
@@ -950,35 +976,6 @@
       color: var(--txt3)
     }
 
-    .de-pb:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-l)
-    }
-
-    .bb {
-      background: var(--surf2);
-      padding: 12px 18px;
-      border-radius: 18px 18px 18px 4px;
-      font-size: 14.5px;
-      line-height: 1.5;
-      max-width: 85%;
-      box-shadow: var(--sh1);
-      border: 1px solid var(--bdr2);
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-word;
-    }
-
-    .bb.u {
-      background: var(--accent);
-      color: #0f0f11;
-      border-radius: 18px 18px 4px 18px;
-      font-weight: 500;
-      border: none;
-      box-shadow: 0 2px 10px rgba(138, 180, 248, .15)
-    }
-
     .de-pb.sel {
       background: var(--accent);
       color: #0f0f11;
@@ -990,7 +987,6 @@
       height: 12px
     }
 
-    /* selected chips */
     #scw {
       margin-top: 12px;
       padding-bottom: 4px
@@ -1000,15 +996,13 @@
       font-size: 11px;
       color: var(--txt3);
       margin-bottom: 7px;
-      letter-spacing: .3px;
       text-transform: uppercase
     }
 
     #scc {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
-      padding-bottom: 2px
+      gap: 5px
     }
 
     .sc {
@@ -1031,8 +1025,7 @@
       color: var(--txt3);
       display: flex;
       align-items: center;
-      padding: 0;
-      transition: color var(--trs)
+      padding: 0
     }
 
     .sc button:hover {
@@ -1044,13 +1037,6 @@
       height: 11px
     }
 
-    .se {
-      font-size: 12.5px;
-      color: var(--txt3);
-      padding: 3px 0
-    }
-
-    /* footer */
     .dlg-ft {
       flex-shrink: 0;
       display: flex;
@@ -1070,12 +1056,7 @@
       font-weight: 500;
       padding: 9px 18px;
       border-radius: 9px;
-      cursor: pointer;
-      transition: all var(--trs)
-    }
-
-    .btn-cl:hover {
-      background: var(--surf2)
+      cursor: pointer
     }
 
     .btn-sv {
@@ -1088,196 +1069,32 @@
       padding: 9px 22px;
       border-radius: 9px;
       cursor: pointer;
-      transition: background var(--trs);
       box-shadow: 0 2px 10px rgba(138, 180, 248, .22)
     }
 
-    .btn-sv:hover {
-      background: var(--accent-d)
-    }
-
-    /* toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(14px);
-      background: var(--surf2);
-      border: 1px solid var(--bdr2);
-      color: var(--txt);
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 13.5px;
-      opacity: 0;
-      transition: all .22s;
-      z-index: 999;
-      pointer-events: none;
-      white-space: nowrap;
-      box-shadow: var(--sh2)
-    }
-
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
-
-    /* Recording indicator pulse */
-    .recording-pulse {
-      animation: recordingPulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes recordingPulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(242, 139, 130, 0.7);
-      }
-
-      70% {
-        box-shadow: 0 0 0 15px rgba(242, 139, 130, 0);
-      }
-
-      100% {
-        box-shadow: 0 0 0 0 rgba(242, 139, 130, 0);
-      }
-    }
-
-    /* ═══ MOBILE ═══ */
+    /* Mobile */
     @media(max-width:700px) {
       #topbar {
         padding: 0 14px;
         height: 54px
       }
-
       .brand-text {
         display: none
       }
-
-      .st-pill span:not(#dot) {
-        font-size: 11px
-      }
-
       #hero {
         padding: 28px 16px 22px;
         gap: 22px
       }
-
       .hero-h1 {
         font-size: 1.6rem
       }
-
-      .hero-ring {
-        width: 58px;
-        height: 58px;
-        border-radius: 18px
-      }
-
-      .hero-ring [data-lucide] {
-        width: 26px;
-        height: 26px
-      }
-
       .sbar {
         height: 50px;
         padding: 0 4px 0 14px;
-        max-width: 100%;
-        width: 100%
+        max-width: 100%
       }
-
-      .sbar input {
-        font-size: 14px;
-        min-width: 0;
-        width: 0
-      }
-
-      .btn-v {
-        width: 36px;
-        height: 36px;
-        flex-shrink: 0
-      }
-
-      .btn-v [data-lucide] {
-        width: 17px;
-        height: 17px
-      }
-
-      .btn-s {
-        width: 34px;
-        height: 34px;
-        flex-shrink: 0
-      }
-
-      .btn-s [data-lucide] {
-        width: 15px;
-        height: 15px
-      }
-
-      .hints {
-        gap: 6px;
-        justify-content: flex-start
-      }
-
-      .chip {
-        font-size: 12px;
-        padding: 6px 13px
-      }
-
-      #msgs {
-        padding: 14px
-      }
-
-      .bb {
-        max-width: calc(100% - 46px);
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        word-break: break-word;
-      }
-
-      #inp {
-        padding: 8px 12px 14px;
-        width: 100%;
-      }
-
-      #inp .sbar {
-        max-width: 100%;
-        width: 100%;
-        min-width: 0;
-      }
-
-      #dlg {
-        border-radius: 14px;
-        max-height: 92vh
-      }
-
-      .dlg-head {
-        padding: 16px 16px 14px
-      }
-
-      .dlg-body {
-        padding: 14px 16px 0
-      }
-
-      .dlg-ft {
-        padding: 12px 16px 16px
-      }
-    }
-
-    @media(max-width:420px) {
-      .hero-h1 {
-        font-size: 1.35rem
-      }
-
-      .hero-ring {
-        width: 52px;
-        height: 52px;
-        border-radius: 15px
-      }
-
-      .hints {
-        gap: 5px
-      }
-
-      .chip {
-        font-size: 11.5px;
-        padding: 5px 12px
+      .voice-card {
+        padding: 24px 20px;
       }
     }
   </style>
@@ -1288,25 +1105,23 @@
 
     <!-- TOP BAR -->
     <header id="topbar">
-      <div class="brand" style="cursor:pointer" onclick="logoutSession()" title="Click to Sign Out">
+      <div class="brand" onclick="logoutSession()" title="Click to Sign Out">
         <div class="brand-ico">
           <i data-lucide="bot"></i>
         </div>
         <span class="brand-text">Lumi <em>Home AI</em></span>
       </div>
       <div class="tb-r">
-        <!-- hidden status nodes still needed by JS -->
         <div id="dot" class="conn" style="display:none"></div>
         <span id="slbl" style="display:none"></span>
         <span id="ecnt" style="display:none"></span>
-        <button class="ib" onclick="openLogsDlg()" title="Logs" aria-label="Logs">
+        <button class="ib" onclick="openLogsDlg()" title="Logs">
           <i data-lucide="file-text"></i>
         </button>
-        <button class="ib" onclick="openSchedDlg()" title="Schedule" aria-label="Schedule">
+        <button class="ib" onclick="openSchedDlg()" title="Schedule">
           <i data-lucide="calendar"></i>
         </button>
-        <button id="btn-settings" class="ib" onclick="openDlg()" title="Settings" aria-label="Settings"
-          style="display:none">
+        <button id="btn-settings" class="ib" onclick="openDlg()" title="Settings" style="display:none">
           <i data-lucide="settings-2"></i>
         </button>
       </div>
@@ -1328,19 +1143,16 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd" type="text" autocomplete="off" placeholder="Ask Lumi anything…" onkeydown="onKey(event)" />
-            <button class="btn-v" onclick="startVoiceRecording()" title="Voice input" aria-label="Voice input">
+            <button class="btn-v" onclick="openVoiceCard()" title="Voice input">
               <i data-lucide="mic"></i>
             </button>
-            <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud"
-              aria-label="Read aloud (off)">
+            <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud">
               <i data-lucide="volume-x"></i>
             </button>
-            <button class="btn-s" onclick="send(false)" title="Send" aria-label="Send">
+            <button class="btn-s" onclick="send(false)" title="Send">
               <i data-lucide="arrow-up"></i>
             </button>
           </div>
-
-
         </div>
 
         <!-- MESSAGES -->
@@ -1351,10 +1163,10 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd2" type="text" autocomplete="off" placeholder="Ask Lumi…" onkeydown="onKey2(event)" />
-            <button class="btn-v" onclick="startVoiceRecording()" title="Voice" aria-label="Voice">
+            <button class="btn-v" onclick="openVoiceCard()" title="Voice">
               <i data-lucide="mic"></i>
             </button>
-            <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud" aria-label="Read aloud">
+            <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud">
               <i data-lucide="volume-x"></i>
             </button>
             <button class="btn-s" onclick="send(true)">
@@ -1368,58 +1180,66 @@
 
   <div id="toast"></div>
 
-  <!-- VOICE OVERLAY -->
-  <div id="voice-ov">
-    <div class="v-rings">
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <button class="v-btn" onclick="stopVoiceRecording()" aria-label="Stop recording">
-        <i data-lucide="square"></i>
-      </button>
+  <!-- VOICE RECORDER CARD OVERLAY -->
+  <div id="voice-card-ov" onclick="if(event.target===this)closeVoiceCard()">
+    <div class="voice-card">
+      <div class="voice-card-header">
+        <h3>Voice Assistant</h3>
+        <p id="voice-card-sub">Tap the mic to speak</p>
+      </div>
+
+      <div class="voice-record-btn-container">
+        <div class="voice-record-rings" id="voice-rings" style="display:none">
+          <div class="voice-record-ring"></div>
+          <div class="voice-record-ring"></div>
+          <div class="voice-record-ring"></div>
+        </div>
+        <button class="voice-record-btn" id="voice-record-btn" onclick="toggleVoiceRecording()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="voice-timer" id="voice-timer">00:00</div>
+      <div class="voice-status" id="voice-status">Ready</div>
+
+      <div class="voice-actions">
+        <button class="voice-btn cancel" onclick="closeVoiceCard()">Cancel</button>
+        <button class="voice-btn done" id="voice-done-btn" onclick="finishRecording()" disabled>Done</button>
+      </div>
     </div>
-    <div class="v-label" id="voice-status">Recording</div>
-    <div class="v-sub" id="voice-interim"></div>
-    <button class="v-cancel" onclick="cancelVoiceRecording()">Cancel</button>
   </div>
 
   <!-- SCHEDULE DIALOG -->
-  <div id="sched-ov"
-    style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px"
-    onclick="if(event.target===event.currentTarget)document.getElementById('sched-ov').style.display='none'">
-    <div id="sched-dlg"
-      style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
+  <div id="sched-ov" style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===event.currentTarget)document.getElementById('sched-ov').style.display='none'">
+    <div id="sched-dlg" style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
       <div class="dlg-head">
         <div class="dlg-hl">
           <div class="dlg-ico"><i data-lucide="calendar"></i></div>
           <h2>Scheduled Actions</h2>
         </div>
-        <button class="dlg-cls" onclick="document.getElementById('sched-ov').style.display='none'"><i
-            data-lucide="x"></i></button>
+        <button class="dlg-cls" onclick="document.getElementById('sched-ov').style.display='none'"><i data-lucide="x"></i></button>
       </div>
       <div class="dlg-body" id="sched-list"></div>
-      <div class="dlg-ft"><button class="btn-cl"
-          onclick="document.getElementById('sched-ov').style.display='none'">Close</button></div>
+      <div class="dlg-ft"><button class="btn-cl" onclick="document.getElementById('sched-ov').style.display='none'">Close</button></div>
     </div>
   </div>
 
   <!-- LOGS DIALOG -->
-  <div id="logs-ov"
-    style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px"
-    onclick="if(event.target===event.currentTarget)document.getElementById('logs-ov').style.display='none'">
-    <div id="logs-dlg"
-      style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
+  <div id="logs-ov" style="display:none;position:fixed;inset:0;background:rgba(8,8,10,.78);backdrop-filter:blur(12px);z-index:300;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===event.currentTarget)document.getElementById('logs-ov').style.display='none'">
+    <div id="logs-dlg" style="background:var(--surf);border:1px solid var(--bdr2);border-radius:18px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 28px 90px rgba(0,0,0,.65);animation:di .2s ease">
       <div class="dlg-head">
         <div class="dlg-hl">
           <div class="dlg-ico"><i data-lucide="file-text"></i></div>
           <h2>System Logs</h2>
         </div>
-        <button class="dlg-cls" onclick="document.getElementById('logs-ov').style.display='none'"><i
-            data-lucide="x"></i></button>
+        <button class="dlg-cls" onclick="document.getElementById('logs-ov').style.display='none'"><i data-lucide="x"></i></button>
       </div>
       <div class="dlg-body" id="logs-list" style="overflow-y:auto;padding:0;"></div>
-      <div class="dlg-ft"><button class="btn-cl"
-          onclick="document.getElementById('logs-ov').style.display='none'">Close</button></div>
+      <div class="dlg-ft"><button class="btn-cl" onclick="document.getElementById('logs-ov').style.display='none'">Close</button></div>
     </div>
   </div>
 
@@ -1431,9 +1251,7 @@
           <div class="dlg-ico"><i data-lucide="cpu"></i></div>
           <h2>AI-Enabled Devices</h2>
         </div>
-        <button class="dlg-cls" onclick="closeDlg()" aria-label="Close">
-          <i data-lucide="x"></i>
-        </button>
+        <button class="dlg-cls" onclick="closeDlg()"><i data-lucide="x"></i></button>
       </div>
       <div class="dlg-body">
         <div class="sh">
@@ -1445,8 +1263,7 @@
           <input id="dlg-epq" type="text" placeholder="Find a device…" oninput="renderDlgEnt()" />
         </div>
         <div id="dlg-ent-list">
-          <div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">Connect to Home Assistant first
-            to load devices.</div>
+          <div style="padding:16px;font-size:13px;color:var(--txt3);text-align:center">Connect to Home Assistant first to load devices.</div>
         </div>
         <div id="scw">
           <div class="scl">Selected</div>
@@ -1474,7 +1291,7 @@
     initLucide();
 
     /* ══════════════════════════════════════
-       CONFIG (config.json + localStorage)
+       CONFIG
     ══════════════════════════════════════ */
     const HA_WS = "wss://demo.lumihomepro1.com/api/websocket";
     const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNGNlNThiNDk1Nzk0NDVmYjUxNzE2NDA0N2Q0MGNmZCIsImlhdCI6MTc2NTM0NzQ5MSwiZXhwIjoyMDgwNzA3NDkxfQ.Se5PGwx0U9aqyVRnD1uwvCv3F-aOE8H53CKA5TqsV7U";
@@ -1483,9 +1300,7 @@
     let ENTITIES = [];
     let SELECTED = new Set();
 
-    /* Load from config.json (when served from HTTP), fallback to localStorage */
     async function loadConfig() {
-      // 1. Try config.json via HTTP
       try {
         const r = await fetch('config.json?v=' + Date.now());
         if (r.ok) {
@@ -1495,18 +1310,16 @@
             return;
           }
         }
-      } catch (_) { }
-      // 2. Fallback: localStorage
+      } catch (_) {}
       try {
         const raw = localStorage.getItem(LS_KEY);
         if (raw) {
           const j = JSON.parse(raw);
           if (Array.isArray(j.aiEnabledDevices)) SELECTED = new Set(j.aiEnabledDevices);
         }
-      } catch (_) { }
+      } catch (_) {}
     }
 
-    /* Save: try POST /save-config (local server), then localStorage */
     async function saveConfig() {
       const payload = { aiEnabledDevices: [...SELECTED] };
       let savedToFile = false;
@@ -1517,9 +1330,8 @@
           body: JSON.stringify(payload)
         });
         if (r.ok) savedToFile = true;
-      } catch (_) { }
-      // Always also write to localStorage as backup
-      try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch (_) { }
+      } catch (_) {}
+      try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch (_) {}
       return savedToFile;
     }
 
@@ -1549,7 +1361,6 @@
         setTimeout(() => { if (CBS[id]) { delete CBS[id]; rej(new Error('Timeout')); } }, 10000);
       });
     }
-    function callSvc(d, s, data) { return wsSend({ type: 'call_service', domain: d, service: s, service_data: data }); }
     function setDot(c, l) { document.getElementById('dot').className = c; document.getElementById('slbl').textContent = l; }
 
     async function loadEnt() {
@@ -1561,165 +1372,107 @@
           attributes: s.attributes || {}
         }));
         ENTITIES.sort((a, b) => a.domain.localeCompare(b.domain) || a.name.localeCompare(b.name));
-        const ecnt = document.getElementById('ecnt');
-        ecnt.textContent = '(' + ENTITIES.length + ')';
       } catch (e) { console.warn(e); }
     }
 
-    /* ══════════════════════════════════════
-       DOMAIN ICON MAP
-    ══════════════════════════════════════ */
     const DIM = {
       light: 'lightbulb', switch: 'toggle-right', cover: 'layers',
       climate: 'thermometer', media_player: 'speaker', sensor: 'activity',
       binary_sensor: 'radio', input_boolean: 'check-square', scene: 'sparkles',
-      script: 'code-2', automation: 'cpu', fan: 'wind', camera: 'camera',
-      lock: 'lock', vacuum: 'disc', alarm_control_panel: 'shield',
-      water_heater: 'droplets', humidifier: 'cloud-drizzle'
+      script: 'code-2', automation: 'cpu', fan: 'wind'
     };
     function dico(d) { return DIM[d] || 'square'; }
 
     /* ══════════════════════════════════════
-       AI
-    ══════════════════════════════════════ */
-
-    /* Boss replies */
-    const OK_REPLIES = ["Done boss! What's next?", "Got it boss! Anything else?", "All set boss! What's next?", "Consider it done boss!"];
-    const FAIL_REPLIES = ["Couldn't do that one boss.", "That didn't work boss."];
-    function okReply() { return OK_REPLIES[Math.floor(Math.random() * OK_REPLIES.length)]; }
-    function failReply() { return FAIL_REPLIES[Math.floor(Math.random() * FAIL_REPLIES.length)]; }
-
-    /* Entity scoring */
-    function getAIEntities(q) {
-      const pool = SELECTED.size > 0
-        ? ENTITIES.filter(e => SELECTED.has(e.entity_id))
-        : ENTITIES.filter(e => ['light', 'switch', 'cover', 'fan', 'input_boolean', 'scene', 'media_player', 'climate'].includes(e.domain)).slice(0, 50);
-      if (!q) return pool;
-      const words = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      return pool.map(e => {
-        const h = (e.name + ' ' + e.entity_id).toLowerCase();
-        let sc = 0; words.forEach(w => { if (h.includes(w)) sc += 3; });
-        return { e, sc };
-      }).sort((a, b) => b.sc - a.sc).slice(0, 40).map(s => s.e);
-    }
-
-    /* Unified prompt — AI decides intent, single call, no keyword guessing */
-    function sendCmd(txt) {
-      const el = document.getElementById('cmd');
-      el.value = txt;
-      send(false);
-    }
-
-    function getIstTimeStr(d) {
-      return new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false
-      }).format(d || new Date());
-    }
-
-    async function openLogsDlg() {
-      document.getElementById('logs-ov').style.display = 'flex';
-      const el = document.getElementById('logs-list');
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
-      try {
-        const r = await fetch('./api/history');
-        const s = await r.json();
-        if (!s.length) {
-          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No logs found.</div>';
-          return;
-        }
-        const l = s.slice(-30).reverse();
-        let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:16px">`;
-        l.forEach(x => {
-          const time = getIstTimeStr(new Date(x.timestamp));
-          const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
-          logHtml += `<div style="background:var(--surf2);padding:10px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--bdr2);">
-        <span style="display:flex;align-items:center;"><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">${time}</span><span style="font-weight:500;color:var(--txt)">${esc(x.device)}</span></span>
-        <span style="color:${color};font-weight:600;font-size:11px;letter-spacing:0.5px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">${esc(x.action)}</span>
-      </div>`;
-        });
-        logHtml += `</div>`;
-        el.innerHTML = logHtml;
-      } catch (e) {
-        el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
-      }
-    }
-
-    async function delSched(id) {
-      try {
-        document.getElementById('sched-list').innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Deleting...</div>';
-        await fetch('./api/schedule?id=' + id, { method: 'DELETE' });
-        openSchedDlg();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    async function openSchedDlg() {
-      document.getElementById('sched-ov').style.display = 'flex';
-      const el = document.getElementById('sched-list');
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
-      try {
-        const r = await fetch('./api/schedule');
-        const s = await r.json();
-        if (!s.length) {
-          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No scheduled actions.</div>';
-          return;
-        }
-        el.innerHTML = s.map(x => {
-          const acts = x.cmds.map(c => {
-            let n = c.data?.entity_id || 'Device';
-            if (x.reqEntities) {
-              const e = x.reqEntities.find(ee => ee.entity_id === n);
-              if (e) n = e.name;
-            }
-            let t = (c.service && c.service.includes('off')) ? 'OFF' : 'ON';
-            return `${esc(n)} &rarr; ${t}`;
-          }).join(', ');
-          return `<div class="de-r" style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--bdr)">
-        <div style="font-size:13px;width:100%">
-          <div style="color:var(--txt);font-weight:500">${esc(x.displayTime)}</div>
-          <div style="color:var(--txt3);font-size:11.5px;margin-top:4px;white-space:normal;line-height:1.4">${acts}</div>
-        </div>
-        <button onclick="delSched('${x.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:6px;opacity:0.8;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" aria-label="Delete"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button>
-      </div>`;
-        }).join('');
-        lucide.createIcons({ nodes: el.querySelectorAll('[data-lucide]') });
-      } catch (e) {
-        el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>';
-      }
-    }
-
-    /* ══════════════════════════════════════
-       VOICE RECORDING (Custom FTP-based)
+       VOICE RECORDER CARD
     ══════════════════════════════════════ */
     let mediaRecorder = null;
     let audioChunks = [];
     let audioStream = null;
-    let recordingCheckInterval = null;
     let recordingTimer = null;
     let recordingSeconds = 0;
+    let recordedBlob = null;
+    let isRecording = false;
 
-    async function startVoiceRecording() {
+    function openVoiceCard() {
+      document.getElementById('voice-card-ov').classList.add('open');
+      resetVoiceCard();
+    }
+
+    function closeVoiceCard() {
+      if (isRecording) {
+        stopRecording();
+      }
+      document.getElementById('voice-card-ov').classList.remove('open');
+      resetVoiceCard();
+    }
+
+    function resetVoiceCard() {
+      const btn = document.getElementById('voice-record-btn');
+      const rings = document.getElementById('voice-rings');
+      const status = document.getElementById('voice-status');
+      const timer = document.getElementById('voice-timer');
+      const doneBtn = document.getElementById('voice-done-btn');
+      const sub = document.getElementById('voice-card-sub');
+      
+      btn.classList.remove('recording');
+      rings.style.display = 'none';
+      status.textContent = 'Ready';
+      timer.textContent = '00:00';
+      doneBtn.disabled = true;
+      sub.textContent = 'Tap the mic to speak';
+      
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+      recordingSeconds = 0;
+      recordedBlob = null;
+    }
+
+    async function toggleVoiceRecording() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    }
+
+    async function startRecording() {
       try {
-        // Request microphone permission
-        audioStream = await navigator.mediaDevices.getUserMedia({ 
+        // Request microphone with mobile-friendly constraints
+        const constraints = {
           audio: {
             channelCount: 1,
             sampleRate: 16000,
-            sampleSize: 16
-          } 
-        });
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        };
+
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+          // Fallback to simple constraints for mobile
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        }
+
+        audioStream = stream;
         
-        // Create MediaRecorder with WAV-compatible settings
-        const options = {};
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          options.mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          options.mimeType = 'audio/webm';
+        // Find supported MIME type
+        let mimeType = '';
+        const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', ''];
+        for (const t of types) {
+          if (t === '' || MediaRecorder.isTypeSupported(t)) {
+            mimeType = t;
+            break;
+          }
         }
         
-        mediaRecorder = new MediaRecorder(audioStream, options);
-        
+        mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
         audioChunks = [];
         
         mediaRecorder.ondataavailable = (event) => {
@@ -1728,325 +1481,208 @@
           }
         };
         
-        mediaRecorder.onstop = async () => {
-          // Update overlay status
-          document.getElementById('voice-status').textContent = 'Processing...';
-          document.getElementById('voice-interim').textContent = 'Converting and uploading...';
+        mediaRecorder.onstop = () => {
+          const mime = mediaRecorder.mimeType || 'audio/webm';
+          recordedBlob = new Blob(audioChunks, { type: mime });
           
-          // Combine chunks into single blob
-          const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-          
-          // Convert to WAV format (required by Home Assistant service)
-          try {
-            const wavBlob = await convertToWav(audioBlob);
-            const arrayBuffer = await wavBlob.arrayBuffer();
-            const wavArray = Array.from(new Uint8Array(arrayBuffer));
-            
-            // Call Home Assistant service to upload via FTP
-            await callHAServiceForRecording(wavArray);
-            
-            // Start polling for the MP3 file
-            startPollingForMP3();
-          } catch (err) {
-            console.error('Conversion error:', err);
-            toast('Failed to process audio');
-            closeVoiceOverlay();
-          }
+          document.getElementById('voice-done-btn').disabled = false;
+          document.getElementById('voice-status').textContent = 'Ready to send';
+          document.getElementById('voice-card-sub').textContent = 'Recording complete';
         };
         
-        // Start recording
-        mediaRecorder.start(1000); // Collect data every second
+        mediaRecorder.start(1000);
         isRecording = true;
+        
+        // Update UI
+        const btn = document.getElementById('voice-record-btn');
+        const rings = document.getElementById('voice-rings');
+        const status = document.getElementById('voice-status');
+        const sub = document.getElementById('voice-card-sub');
+        
+        btn.classList.add('recording');
+        rings.style.display = 'block';
+        status.textContent = 'Recording...';
+        sub.textContent = 'Speak now';
+        document.getElementById('voice-done-btn').disabled = true;
+        
+        // Start timer
         recordingSeconds = 0;
-        
-        // Show recording overlay
-        document.getElementById('voice-ov').classList.add('open');
-        document.getElementById('voice-status').textContent = 'Recording';
-        document.getElementById('voice-interim').textContent = '00:00';
-        
-        // Update timer
         recordingTimer = setInterval(() => {
           recordingSeconds++;
           const mins = Math.floor(recordingSeconds / 60);
           const secs = recordingSeconds % 60;
-          document.getElementById('voice-interim').textContent = 
+          document.getElementById('voice-timer').textContent = 
             `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
           
-          // Auto-stop after 30 seconds
           if (recordingSeconds >= 30) {
-            stopVoiceRecording();
+            stopRecording();
           }
         }, 1000);
         
-        toast('Recording started...');
-        
       } catch (error) {
-        console.error('Error starting recording:', error);
-        if (error.name === 'NotAllowedError') {
-          toast('Microphone access denied');
-        } else if (error.name === 'NotFoundError') {
-          toast('No microphone found');
-        } else {
-          toast('Cannot access microphone');
-        }
+        console.error('Recording error:', error);
+        let msg = 'Cannot access microphone';
+        if (error.name === 'NotAllowedError') msg = 'Microphone permission denied';
+        else if (error.name === 'NotFoundError') msg = 'No microphone found';
+        else if (error.name === 'NotReadableError') msg = 'Microphone is busy';
+        
+        document.getElementById('voice-status').textContent = msg;
+        toast(msg);
+        
+        setTimeout(() => {
+          if (!isRecording) closeVoiceCard();
+        }, 1500);
       }
     }
 
-    async function convertToWav(audioBlob) {
-      // Create AudioContext
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        isRecording = false;
+      }
       
-      // Decode the audio data
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+      }
+      
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+      
+      document.getElementById('voice-rings').style.display = 'none';
+      document.getElementById('voice-record-btn').classList.remove('recording');
+    }
+
+    async function finishRecording() {
+      if (!recordedBlob) {
+        closeVoiceCard();
+        return;
+      }
+      
+      const doneBtn = document.getElementById('voice-done-btn');
+      const status = document.getElementById('voice-status');
+      
+      doneBtn.disabled = true;
+      status.textContent = 'Processing...';
+      
+      try {
+        // Convert to WAV
+        const wavBlob = await convertBlobToWav(recordedBlob);
+        const arrayBuffer = await wavBlob.arrayBuffer();
+        const wavArray = Array.from(new Uint8Array(arrayBuffer));
+        
+        // Upload directly to addon
+        const response = await fetch('/api/upload-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: new Uint8Array(wavArray)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          status.textContent = 'Uploaded! Transcribing...';
+          
+          // Poll for MP3
+          let attempts = 0;
+          const checkInterval = setInterval(async () => {
+            try {
+              const checkRes = await fetch('/api/check-mp3');
+              const checkData = await checkRes.json();
+              
+              if (checkData.ready) {
+                clearInterval(checkInterval);
+                
+                // Transcribe
+                const transRes = await fetch('/api/transcribe-mp3', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mp3Path: 'Lumiai.mp3' })
+                });
+                
+                const transData = await transRes.json();
+                closeVoiceCard();
+                
+                if (transData.text) {
+                  const inputId = chatOn ? 'cmd2' : 'cmd';
+                  document.getElementById(inputId).value = transData.text;
+                  toast('Ready! Press Enter or click send');
+                } else {
+                  toast('No speech detected');
+                }
+              }
+              
+              attempts++;
+              if (attempts >= 40) {
+                clearInterval(checkInterval);
+                closeVoiceCard();
+                toast('Processing timeout');
+              }
+            } catch (e) {
+              console.error('Poll error:', e);
+            }
+          }, 500);
+          
+        } else {
+          throw new Error(result.error || 'Upload failed');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        closeVoiceCard();
+        toast('Failed to process recording');
+      }
+    }
+
+    async function convertBlobToWav(audioBlob) {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       const arrayBuffer = await audioBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
-      // Resample to 16kHz mono if needed
+      // Convert to mono 16kHz
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== 16000) {
-        processedBuffer = await resampleAudio(audioContext, audioBuffer, 16000);
-      }
-      
-      // Convert to mono if stereo
-      if (processedBuffer.numberOfChannels > 1) {
-        processedBuffer = convertToMono(audioContext, processedBuffer);
+        const offlineCtx = new OfflineAudioContext(1, audioBuffer.duration * 16000, 16000);
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start();
+        processedBuffer = await offlineCtx.startRendering();
       }
       
       // Convert to WAV
-      const wavBuffer = audioBufferToWav(processedBuffer);
-      await audioContext.close();
+      const samples = processedBuffer.getChannelData(0);
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
       
-      return new Blob([wavBuffer], { type: 'audio/wav' });
-    }
-
-    async function resampleAudio(ctx, audioBuffer, targetSampleRate) {
-      const offlineCtx = new OfflineAudioContext(
-        audioBuffer.numberOfChannels,
-        audioBuffer.duration * targetSampleRate,
-        targetSampleRate
-      );
-      
-      const source = offlineCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(offlineCtx.destination);
-      source.start();
-      
-      return await offlineCtx.startRendering();
-    }
-
-    function convertToMono(ctx, audioBuffer) {
-      const offlineCtx = new OfflineAudioContext(
-        1,
-        audioBuffer.length,
-        audioBuffer.sampleRate
-      );
-      
-      const source = offlineCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      
-      const merger = offlineCtx.createChannelMerger(1);
-      source.connect(merger, 0, 0);
-      if (audioBuffer.numberOfChannels > 1) {
-        source.connect(merger, 0, 1);
-      }
-      merger.connect(offlineCtx.destination);
-      source.start();
-      
-      return offlineCtx.startRendering();
-    }
-
-    function audioBufferToWav(buffer) {
-      const numChannels = buffer.numberOfChannels;
-      const sampleRate = buffer.sampleRate;
-      const format = 1; // PCM
-      const bitDepth = 16;
-      
-      // Get the audio data
-      const channelData = [];
-      for (let i = 0; i < numChannels; i++) {
-        channelData.push(buffer.getChannelData(i));
-      }
-      
-      // Interleave if stereo
-      let samples;
-      if (numChannels === 2) {
-        samples = new Float32Array(channelData[0].length * 2);
-        for (let i = 0; i < channelData[0].length; i++) {
-          samples[i * 2] = channelData[0][i];
-          samples[i * 2 + 1] = channelData[1][i];
+      const writeString = (offset, str) => {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
         }
-      } else {
-        samples = channelData[0];
-      }
+      };
       
-      const dataLength = samples.length * (bitDepth / 8);
-      const bufferLength = 44 + dataLength;
-      const arrayBuffer = new ArrayBuffer(bufferLength);
-      const view = new DataView(arrayBuffer);
-      
-      // WAV header
-      writeString(view, 0, 'RIFF');
-      view.setUint32(4, 36 + dataLength, true);
-      writeString(view, 8, 'WAVE');
-      writeString(view, 12, 'fmt ');
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
       view.setUint32(16, 16, true);
-      view.setUint16(20, format, true);
-      view.setUint16(22, numChannels, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true);
-      view.setUint16(32, numChannels * (bitDepth / 8), true);
-      view.setUint16(34, bitDepth, true);
-      writeString(view, 36, 'data');
-      view.setUint32(40, dataLength, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, 16000, true);
+      view.setUint32(28, 16000 * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
       
-      // Write audio data
-      const offset = 44;
       for (let i = 0; i < samples.length; i++) {
         const sample = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
       }
       
-      return arrayBuffer;
-    }
-
-    function writeString(view, offset, string) {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    }
-
-    async function callHAServiceForRecording(wavArray) {
-      try {
-        // Call Home Assistant service through WebSocket
-        await wsSend({
-          type: 'call_service',
-          domain: 'LumiaiRecorder',
-          service: 'process',
-          service_data: {
-            wav: wavArray,
-            target: ''
-          }
-        });
-        
-        console.log('Recording sent to HA service');
-      } catch (error) {
-        console.error('Error calling HA service:', error);
-        throw error;
-      }
-    }
-
-    function startPollingForMP3() {
-      let attempts = 0;
-      const maxAttempts = 40; // 20 seconds max
-      
-      document.getElementById('voice-interim').textContent = 'Waiting for file...';
-      
-      recordingCheckInterval = setInterval(async () => {
-        try {
-          const response = await fetch('/api/check-mp3');
-          const data = await response.json();
-          
-          if (data.ready) {
-            clearInterval(recordingCheckInterval);
-            recordingCheckInterval = null;
-            
-            document.getElementById('voice-interim').textContent = 'Transcribing...';
-            
-            // MP3 is ready, now transcribe it
-            await transcribeMP3();
-          }
-          
-          attempts++;
-          if (attempts >= maxAttempts) {
-            clearInterval(recordingCheckInterval);
-            recordingCheckInterval = null;
-            closeVoiceOverlay();
-            toast('Recording processing timeout');
-          }
-        } catch (error) {
-          console.error('Error checking MP3:', error);
-        }
-      }, 500);
-    }
-
-    async function transcribeMP3() {
-      try {
-        const response = await fetch('/api/transcribe-mp3', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mp3Path: 'Lumiai.mp3' })
-        });
-        
-        const data = await response.json();
-        
-        closeVoiceOverlay();
-        
-        if (data.error) {
-          toast('Transcription failed: ' + data.error);
-          return;
-        }
-        
-        if (data.text) {
-          // Set the transcribed text to the input field
-          const inputId = chatOn ? 'cmd2' : 'cmd';
-          const inputEl = document.getElementById(inputId);
-          inputEl.value = data.text;
-          inputEl.focus();
-          
-          toast('Ready! Press Enter or click send');
-        } else {
-          toast('No speech detected');
-        }
-      } catch (error) {
-        closeVoiceOverlay();
-        console.error('Error transcribing:', error);
-        toast('Transcription failed');
-      }
-    }
-
-    function stopVoiceRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-      
-      if (recordingTimer) {
-        clearInterval(recordingTimer);
-        recordingTimer = null;
-      }
-    }
-
-    function cancelVoiceRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-      
-      if (recordingTimer) {
-        clearInterval(recordingTimer);
-        recordingTimer = null;
-      }
-      
-      if (recordingCheckInterval) {
-        clearInterval(recordingCheckInterval);
-        recordingCheckInterval = null;
-      }
-      
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-        audioStream = null;
-      }
-      
-      closeVoiceOverlay();
-      toast('Recording cancelled');
-    }
-
-    function closeVoiceOverlay() {
-      document.getElementById('voice-ov').classList.remove('open');
-      document.getElementById('voice-interim').textContent = '';
-      document.getElementById('voice-status').textContent = 'Recording';
-      
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-        audioStream = null;
-      }
+      audioContext.close();
+      return new Blob([buffer], { type: 'audio/wav' });
     }
 
     /* ══════════════════════════════════════
@@ -2081,26 +1717,10 @@
     function addA(txt, isHtml) {
       const c = document.getElementById('msgs');
       const d = document.createElement('div'); d.className = 'mr';
-      let inner = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a" ${isHtml ? 'style="width:100%;max-width:100%;background:transparent!important;padding:0;box-shadow:none"' : ''}>${isHtml ? txt : esc(txt)}</div>`;
-      d.innerHTML = inner;
+      d.innerHTML = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a" ${isHtml ? 'style="width:100%;max-width:100%;background:transparent!important;padding:0;box-shadow:none"' : ''}>${isHtml ? txt : esc(txt)}</div>`;
       c.appendChild(d); c.scrollTop = c.scrollHeight;
       lucide.createIcons({ nodes: d.querySelectorAll('[data-lucide]') });
       if (typeof speakText === 'function' && !isHtml) speakText(txt);
-    }
-
-    /* ══════════════════════════════════════
-       SETTINGS BUTTON VISIBILITY
-    ══════════════════════════════════════ */
-    let settingsHideTimer = null;
-    function showSettingsBtn() {
-      const b = document.getElementById('btn-settings');
-      b.style.display = 'flex';
-      clearTimeout(settingsHideTimer);
-      settingsHideTimer = setTimeout(hideSettingsBtn, 30 * 60 * 1000);
-    }
-    function hideSettingsBtn() {
-      document.getElementById('btn-settings').style.display = 'none';
-      clearTimeout(settingsHideTimer);
     }
 
     async function send(fromBottom) {
@@ -2108,7 +1728,6 @@
       const txt = el.value.trim(); if (!txt) return;
       el.value = '';
 
-      // ── Secret commands (show/hide settings) ──
       const cmd = txt.toLowerCase().trim();
       if (cmd.includes('show') && (cmd.includes('entity config') || cmd.includes('setting'))) {
         showSettingsBtn();
@@ -2137,12 +1756,9 @@
         });
 
         let parsed;
-        try {
-          parsed = await r.json();
-        } catch (e) { throw new Error('Server returned invalid data'); }
+        try { parsed = await r.json(); } catch (e) { throw new Error('Server returned invalid data'); }
 
         rmTyp(tid);
-
         if (parsed.error) addA('Issue boss: ' + parsed.error);
         else if (parsed.chat) addA(parsed.chat, parsed.isHtml);
       } catch (e) {
@@ -2155,22 +1771,15 @@
     function onKey2(e) { if (e.key === 'Enter') send(true); }
 
     /* ══════════════════════════════════════
-       TEXT-TO-SPEECH
+       TTS
     ══════════════════════════════════════ */
-    let ttsEnabled = false;
-    let ttsVoice = null;
-
-    // Pre-load voices and pick best female English voice
+    let ttsEnabled = false, ttsVoice = null;
     function loadTTSVoice() {
       const pick = () => {
         const voices = window.speechSynthesis.getVoices();
-        // Priority: Google UK English Female > any female > any English
-        ttsVoice =
-          voices.find(v => /google uk english female/i.test(v.name)) ||
-          voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang)) ||
-          voices.find(v => /en/i.test(v.lang) && v.name.toLowerCase().includes('zira')) ||
-          voices.find(v => /en/i.test(v.lang) && v.name.toLowerCase().includes('samantha')) ||
-          voices.find(v => /en/i.test(v.lang)) || null;
+        ttsVoice = voices.find(v => /google uk english female/i.test(v.name)) ||
+                   voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang)) ||
+                   voices.find(v => /en/i.test(v.lang)) || null;
       };
       pick();
       if (window.speechSynthesis.onvoiceschanged !== undefined)
@@ -2180,15 +1789,12 @@
 
     function toggleSpeak() {
       ttsEnabled = !ttsEnabled;
-      if (!ttsEnabled) window.speechSynthesis.cancel(); // stop any playing
-      // Sync both buttons (hero + bottom)
+      if (!ttsEnabled) window.speechSynthesis.cancel();
       ['btn-spk', 'btn-spk2'].forEach(id => {
         const b = document.getElementById(id);
         if (!b) return;
         b.classList.toggle('active', ttsEnabled);
         b.title = ttsEnabled ? 'Read aloud (on)' : 'Read aloud (off)';
-        b.setAttribute('aria-label', ttsEnabled ? 'Read aloud (on)' : 'Read aloud (off)');
-        // Swap icon
         b.innerHTML = ttsEnabled ? '<i data-lucide="volume-2"></i>' : '<i data-lucide="volume-x"></i>';
         lucide.createIcons({ nodes: b.querySelectorAll('[data-lucide]') });
       });
@@ -2197,19 +1803,31 @@
 
     function speakText(txt) {
       if (!ttsEnabled || !txt) return;
-      window.speechSynthesis.cancel(); // cancel any ongoing speech
+      window.speechSynthesis.cancel();
       const utt = new SpeechSynthesisUtterance(txt);
       if (ttsVoice) utt.voice = ttsVoice;
       utt.lang = 'en-US';
-      utt.rate = 1.0;  // natural speed
-      utt.pitch = 1.1; // slightly higher = more feminine if no female voice found
+      utt.rate = 1.0;
+      utt.pitch = 1.1;
       utt.volume = 1;
       window.speechSynthesis.speak(utt);
     }
 
     /* ══════════════════════════════════════
-       SETTINGS DIALOG
+       SETTINGS
     ══════════════════════════════════════ */
+    let settingsHideTimer = null;
+    function showSettingsBtn() {
+      const b = document.getElementById('btn-settings');
+      b.style.display = 'flex';
+      clearTimeout(settingsHideTimer);
+      settingsHideTimer = setTimeout(hideSettingsBtn, 30 * 60 * 1000);
+    }
+    function hideSettingsBtn() {
+      document.getElementById('btn-settings').style.display = 'none';
+      clearTimeout(settingsHideTimer);
+    }
+
     function openDlg() {
       document.getElementById('dlg-epq').value = '';
       renderDlgEnt(); renderSelChips();
@@ -2226,7 +1844,7 @@
     function renderDlgEnt() {
       const q = (document.getElementById('dlg-epq').value || '').toLowerCase().trim();
       const list = q
-        ? ENTITIES.filter(e => e.name.toLowerCase().includes(q) || e.entity_id.toLowerCase().includes(q) || e.domain.toLowerCase().includes(q))
+        ? ENTITIES.filter(e => e.name.toLowerCase().includes(q) || e.entity_id.toLowerCase().includes(q))
         : ENTITIES.slice(0, 100);
       const el = document.getElementById('dlg-ent-list');
       if (!list.length) {
@@ -2235,11 +1853,10 @@
       }
       el.innerHTML = list.map(e => {
         const isSel = SELECTED.has(e.entity_id);
-        const addIco = isSel ? '<i data-lucide="check"></i>' : '<i data-lucide="plus"></i>';
         return `<div class="de-r">
       <div class="de-ico"><i data-lucide="${dico(e.domain)}"></i></div>
-      <div class="de-inf"><div class="de-nm" title="${esc(e.name)}">${esc(e.name)}</div><div class="de-id">${esc(e.entity_id)}</div></div>
-      <button class="de-pb${isSel ? ' sel' : ''}" onclick="dlgToggleSel('${e2(e.entity_id)}')" title="${isSel ? 'Remove' : 'Add'}">${addIco}</button>
+      <div class="de-inf"><div class="de-nm">${esc(e.name)}</div><div class="de-id">${esc(e.entity_id)}</div></div>
+      <button class="de-pb${isSel ? ' sel' : ''}" onclick="dlgToggleSel('${e2(e.entity_id)}')">${isSel ? '<i data-lucide="check"></i>' : '<i data-lucide="plus"></i>'}</button>
     </div>`;
       }).join('');
       document.getElementById('sc-count').textContent = SELECTED.size;
@@ -2253,29 +1870,97 @@
     function renderSelChips() {
       document.getElementById('sc-count').textContent = SELECTED.size;
       const c = document.getElementById('scc');
-      if (!SELECTED.size) { c.innerHTML = '<span class="se">No devices selected — use + above to add.</span>'; return; }
+      if (!SELECTED.size) { c.innerHTML = '<span class="se">No devices selected</span>'; return; }
       c.innerHTML = [...SELECTED].map(id => {
         const e = ENTITIES.find(x => x.entity_id === id);
-        return `<span class="sc">${esc(e ? e.name : id)}<button onclick="removeSel('${e2(id)}')" title="Remove"><i data-lucide="x"></i></button></span>`;
+        return `<span class="sc">${esc(e ? e.name : id)}<button onclick="removeSel('${e2(id)}')"><i data-lucide="x"></i></button></span>`;
       }).join('');
       lucide.createIcons({ nodes: c.querySelectorAll('[data-lucide]') });
     }
     function removeSel(eid) { SELECTED.delete(eid); renderDlgEnt(); renderSelChips(); }
 
     /* ══════════════════════════════════════
-       TOAST
+       LOGS & SCHEDULE
     ══════════════════════════════════════ */
-    let tt;
-    function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2600); }
+    function getIstTimeStr(d) {
+      return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d || new Date());
+    }
+
+    async function openLogsDlg() {
+      document.getElementById('logs-ov').style.display = 'flex';
+      const el = document.getElementById('logs-list');
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
+      try {
+        const r = await fetch('./api/history');
+        const s = await r.json();
+        if (!s.length) {
+          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No logs found.</div>';
+          return;
+        }
+        const l = s.slice(-30).reverse();
+        let html = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:16px">`;
+        l.forEach(x => {
+          const time = getIstTimeStr(new Date(x.timestamp));
+          const color = x.action === 'ON' ? 'var(--green)' : (x.action === 'OFF' ? 'var(--red)' : 'var(--accent)');
+          html += `<div style="background:var(--surf2);padding:10px 14px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;border:1px solid var(--bdr2);">
+        <span><span style="color:var(--txt3);font-size:11.5px;margin-right:12px;font-family:monospace">${time}</span><span style="color:var(--txt)">${esc(x.device)}</span></span>
+        <span style="color:${color};font-weight:600;font-size:11px;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px">${esc(x.action)}</span>
+      </div>`;
+        });
+        html += `</div>`;
+        el.innerHTML = html;
+      } catch (e) { el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>'; }
+    }
+
+    async function openSchedDlg() {
+      document.getElementById('sched-ov').style.display = 'flex';
+      const el = document.getElementById('sched-list');
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">Loading...</div>';
+      try {
+        const r = await fetch('./api/schedule');
+        const s = await r.json();
+        if (!s.length) {
+          el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt3)">No scheduled actions.</div>';
+          return;
+        }
+        el.innerHTML = s.map(x => {
+          const acts = x.cmds.map(c => {
+            let n = c.data?.entity_id || 'Device';
+            let t = (c.service && c.service.includes('off')) ? 'OFF' : 'ON';
+            return `${esc(n)} → ${t}`;
+          }).join(', ');
+          return `<div class="de-r" style="justify-content:space-between;padding:14px;">
+        <div style="font-size:13px;"><div style="color:var(--txt);font-weight:500">${esc(x.displayTime)}</div><div style="color:var(--txt3);font-size:11.5px;margin-top:4px;">${acts}</div></div>
+        <button onclick="delSched('${x.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button>
+      </div>`;
+        }).join('');
+        lucide.createIcons({ nodes: el.querySelectorAll('[data-lucide]') });
+      } catch (e) { el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--red)">Failed to load.</div>'; }
+    }
+
+    async function delSched(id) {
+      try {
+        await fetch('./api/schedule?id=' + id, { method: 'DELETE' });
+        openSchedDlg();
+      } catch (e) { console.error(e); }
+    }
 
     /* ══════════════════════════════════════
-       UTILS
+       TOAST & UTILS
     ══════════════════════════════════════ */
+    let tt;
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(tt);
+      tt = setTimeout(() => t.classList.remove('show'), 2600);
+    }
     function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     function e2(s) { return String(s).replace(/'/g, "\\'"); }
 
     /* ══════════════════════════════════════
-       BOOT & SECURE GUARD
+       BOOT
     ══════════════════════════════════════ */
     (async () => {
       await loadConfig();
@@ -2283,12 +1968,10 @@
     })();
 
     function logoutSession() {
-      if (confirm("Are you sure you want to log out of Lumi AI?")) {
-        try {
-          firebase.auth().signOut().catch(()=>{});
-        } catch(e) {}
+      if (confirm("Are you sure you want to log out?")) {
+        try { firebase.auth().signOut().catch(()=>{}); } catch(e) {}
         localStorage.clear();
-        document.body.innerHTML = '<h2 style="color:white;padding:40px;text-align:center;">Logged Out. You can close this page.</h2>';
+        document.body.innerHTML = '<h2 style="color:white;padding:40px;text-align:center;">Logged Out</h2>';
       }
     }
   </script>
