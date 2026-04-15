@@ -14,6 +14,15 @@ try { addonOptions = JSON.parse(fs.readFileSync('/data/options.json', 'utf8')); 
 const OAI_KEY = addonOptions.openai_api_key || process.env.OAI_KEY || "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";
 const OAI_MODEL = "gpt-4o-mini";
 
+// FTP Configuration for direct upload (bypassing HA service)
+const FTP_CONFIG = {
+  host: '192.168.2.25',
+  port: 21,
+  user: 'lumiai',
+  password: 'Lumiai@Secure#2026',
+  remotePath: '/config/www/community/images'
+};
+
 const HISTORY_FILE = path.join(DIR, 'history.json');
 const SCHEDULE_FILE = path.join(DIR, 'schedule.json');
 const MEMORY_FILE = path.join(DIR, 'memory.json');
@@ -27,7 +36,9 @@ const MIME = {
   '.html': 'text/html',
   '.css':  'text/css',
   '.js':   'application/javascript',
-  '.json': 'application/json'
+  '.json': 'application/json',
+  '.mp3':  'audio/mpeg',
+  '.wav':  'audio/wav'
 };
 
 // State
@@ -54,6 +65,76 @@ function logAction(device, actionStr, rawCmd) {
   writeJson(HISTORY_FILE, h);
 }
 
+// --- FTP UPLOAD FUNCTION (Direct, bypassing HA service) ---
+async function uploadToFTP(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    const ftp = require('ftp');
+    const client = new ftp();
+    
+    client.on('ready', () => {
+      client.cwd(FTP_CONFIG.remotePath, (err) => {
+        if (err) {
+          // Try to create directory if it doesn't exist
+          client.mkdir(FTP_CONFIG.remotePath, true, () => {
+            client.cwd(FTP_CONFIG.remotePath, (err2) => {
+              if (err2) {
+                client.end();
+                reject(err2);
+                return;
+              }
+              uploadFile();
+            });
+          });
+        } else {
+          uploadFile();
+        }
+      });
+      
+      function uploadFile() {
+        client.put(buffer, filename, (err) => {
+          client.end();
+          if (err) reject(err);
+          else resolve();
+        });
+      }
+    });
+    
+    client.on('error', reject);
+    client.connect(FTP_CONFIG);
+  });
+}
+
+// --- AUDIO CONVERSION: WAV to MP3 (using ffmpeg if available) ---
+async function convertWavToMp3(wavBuffer) {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process');
+    const tempWav = path.join('/tmp', `recording_${Date.now()}.wav`);
+    const tempMp3 = path.join('/tmp', `recording_${Date.now()}.mp3`);
+    
+    // Write WAV to temp file
+    fs.writeFileSync(tempWav, wavBuffer);
+    
+    // Convert using ffmpeg (if installed) or fallback to simple copy
+    exec(`ffmpeg -i ${tempWav} -acodec libmp3lame -ab 128k ${tempMp3} -y`, (error) => {
+      if (error) {
+        // Fallback: if ffmpeg not available, just save as WAV with .mp3 extension
+        console.log('ffmpeg not available, saving as WAV with .mp3 extension');
+        fs.writeFileSync(tempMp3, wavBuffer);
+      }
+      
+      try {
+        const mp3Buffer = fs.readFileSync(tempMp3);
+        // Cleanup
+        fs.unlinkSync(tempWav);
+        fs.unlinkSync(tempMp3);
+        resolve(mp3Buffer);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
+}
+
 // --- HA API ---
 async function callSvc(domain, service, data) {
   const r = await fetch(`${HA_URL}/services/${domain}/${service}`, {
@@ -77,7 +158,7 @@ Your owner is "Boss". Always call the user "Boss".
 You must behave like a HUMAN assistant, not just execute commands.
 
 -----------------------------------------
-≡ƒºá CORE BEHAVIOR
+🧠 CORE BEHAVIOR
 -----------------------------------------
 1. Understand intent (not just keywords)
 2. Handle indirect sentences naturally
@@ -87,63 +168,63 @@ You must behave like a HUMAN assistant, not just execute commands.
 6. Maintain short conversation memory
 
 -----------------------------------------
-≡ƒÄ» CONTEXT AWARE INTELLIGENCE
+🎯 CONTEXT AWARE INTELLIGENCE
 -----------------------------------------
 
 If user says:
 - "I am cold"
-ΓåÆ DO NOT execute directly
-ΓåÆ Ask:
+→ DO NOT execute directly
+→ Ask:
 "Boss, I think you might want me to turn off the AC. Should I do that?"
 
 If user says:
 - "I am hot"
-ΓåÆ Ask:
+→ Ask:
 "Boss, should I turn on the AC for you?"
 
 If user says:
 - "Too bright"
-ΓåÆ Ask:
+→ Ask:
 "Boss, which room are you in?"
 
 If user gives room:
-ΓåÆ Ask:
+→ Ask:
 "Boss, would you like me to reduce the brightness?"
 
 If user says YES:
-ΓåÆ Reduce brightness
+→ Reduce brightness
 
 -----------------------------------------
-≡ƒÅá ROOM UNDERSTANDING
+🏠 ROOM UNDERSTANDING
 -----------------------------------------
 
 Use:
 1. Learned memory
 2. Entity names
 
-If room missing ΓåÆ ALWAYS ask
+If room missing → ALWAYS ask
 
 -----------------------------------------
-≡ƒÆ¼ CONVERSATION MEMORY
+💬 CONVERSATION MEMORY
 -----------------------------------------
 
 Maintain flow:
-User ΓåÆ AI ΓåÆ User ΓåÆ AI ΓåÆ EXECUTE
+User → AI → User → AI → EXECUTE
 
 -----------------------------------------
-≡ƒöü FOLLOW-UP ACTION SYSTEM
+🔁 FOLLOW-UP ACTION SYSTEM
 -----------------------------------------
 
 If AI asked and user says:
 "yes", "ok", "do it"
 
-ΓåÆ Execute last suggested action
+→ Execute last suggested action
 
 If user says "no"
-ΓåÆ Cancel
+→ Cancel
 
 -----------------------------------------
-≡ƒºá LEARNING MODE (ADVANCED)
+🧠 LEARNING MODE (ADVANCED)
 -----------------------------------------
 
 If user teaches something, you MUST return a strict JSON payload with the 'learn' parameter:
@@ -151,7 +232,7 @@ If user teaches something, you MUST return a strict JSON payload with the 'learn
 ROOM ALIAS:
 - "mohan room means experience room"
 
-ΓåÆ Return:
+→ Return:
 
 {
   "learn": {
@@ -165,7 +246,7 @@ ROOM ALIAS:
 ROOM DEVICE W/ SUBCATEGORY (Works for lights, covers, sensors, devices):
 - "this light is the chandelier in living room"
 
-ΓåÆ Return:
+→ Return:
 
 {
   "learn": {
@@ -181,7 +262,7 @@ ROOM DEVICE W/ SUBCATEGORY (Works for lights, covers, sensors, devices):
 AC ENTITY LEARNING W/ MODES (18, 20, on, off):
 - "this is home theater ac 18 degree"
 
-ΓåÆ Return:
+→ Return:
 
 {
   "learn": {
@@ -195,7 +276,7 @@ AC ENTITY LEARNING W/ MODES (18, 20, on, off):
 }
 
 -----------------------------------------
-≡ƒôé MEMORY USAGE & SENSORS
+📂 MEMORY USAGE & SENSORS
 -----------------------------------------
 
 Memory includes room_aliases, lights, ac, covers, sensors, devices (with subcategories):
@@ -206,19 +287,19 @@ ${JSON.stringify(mem || {}, null, 2)}
 
 -----------------------------------------
 SERVICES & ENTITY DOMAINS (CRITICAL RULES):
-* ΓÜá∩╕Å ALWAYS match the domain/service to the ENTITY PREFIX.
-* If entity is switch. (e.g., switch.curtain_main) ΓåÆ ALWAYS use switch / turn_on or turn_off. NEVER use open_cover.
-* If entity is cover. ΓåÆ use cover / open_cover or close_cover.
+* ⚠️ ALWAYS match the domain/service to the ENTITY PREFIX.
+* If entity is switch. (e.g., switch.curtain_main) → ALWAYS use switch / turn_on or turn_off. NEVER use open_cover.
+* If entity is cover. → use cover / open_cover or close_cover.
 
-lightΓåÆturn_on(brightness_pct 0-100, color_temp_kelvin 2000-6500 ONLY, rgb_color[r,g,b])/turn_off/toggle
-switch/fan/input_booleanΓåÆturn_on/turn_off/toggle (Use this for curtains IF entity starts with switch.)
-coverΓåÆopen_cover/close_cover/set_cover_position(position 0-100) (Use this for curtains IF entity starts with cover.)
-media_playerΓåÆmedia_play/media_pause/volume_set(volume_level 0-1)
-climateΓåÆset_temperature(temperature)/set_hvac_mode (If exact AC degree switch not in memory)
-scene/scriptΓåÆturn_on
+light→turn_on(brightness_pct 0-100, color_temp_kelvin 2000-6500 ONLY, rgb_color[r,g,b])/turn_off/toggle
+switch/fan/input_boolean→turn_on/turn_off/toggle (Use this for curtains IF entity starts with switch.)
+cover→open_cover/close_cover/set_cover_position(position 0-100) (Use this for curtains IF entity starts with cover.)
+media_player→media_play/media_pause/volume_set(volume_level 0-1)
+climate→set_temperature(temperature)/set_hvac_mode (If exact AC degree switch not in memory)
+scene/script→turn_on
 
 -----------------------------------------
-≡ƒôª RESPONSE FORMAT (STRICT JSON ONLY)
+📦 RESPONSE FORMAT (STRICT JSON ONLY)
 -----------------------------------------
 
 Chat:
@@ -304,7 +385,7 @@ LEARNING (CRITICAL - YOU MUST INCLUDE THE 'learn' OBJECT IF USER TEACHES YOU SOM
 }
 
 -----------------------------------------
-ΓÜá∩╕Å STRICT RULES
+⚠️ STRICT RULES
 -----------------------------------------
 - ALWAYS return JSON ONLY. NO raw text before or after.
 - Do NOT prepend your JSON with labels like "MULTIPLE:" or "AC ON:". Just output the raw '{' or '['.
@@ -530,6 +611,178 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
+  // --- DIRECT AUDIO UPLOAD ENDPOINT (Bypasses HA service) ---
+  if (req.method === 'POST' && req.url === '/api/upload-audio') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      try {
+        const buffer = Buffer.concat(chunks);
+        const boundary = req.headers['content-type']?.split('boundary=')[1];
+        
+        if (!boundary) {
+          // Direct binary upload (WAV data)
+          const wavBuffer = buffer;
+          
+          // Convert to MP3
+          const mp3Buffer = await convertWavToMp3(wavBuffer);
+          
+          // Upload to FTP
+          await uploadToFTP(mp3Buffer, 'Lumiai.mp3');
+          
+          // Also save locally
+          const localPath = '/config/www/community/images';
+          if (!fs.existsSync(localPath)) {
+            fs.mkdirSync(localPath, { recursive: true });
+          }
+          fs.writeFileSync(path.join(localPath, 'Lumiai.mp3'), mp3Buffer);
+          
+          console.log('✅ Audio uploaded successfully via direct endpoint');
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Audio uploaded' }));
+        } else {
+          // Multipart form data
+          const parts = buffer.toString().split(`--${boundary}`);
+          let wavBuffer = null;
+          
+          for (const part of parts) {
+            if (part.includes('Content-Disposition') && part.includes('name="audio"')) {
+              const dataStart = part.indexOf('\r\n\r\n');
+              if (dataStart !== -1) {
+                wavBuffer = Buffer.from(part.slice(dataStart + 4).trim(), 'binary');
+                break;
+              }
+            }
+          }
+          
+          if (!wavBuffer) {
+            throw new Error('No audio data found');
+          }
+          
+          // Convert to MP3
+          const mp3Buffer = await convertWavToMp3(wavBuffer);
+          
+          // Upload to FTP
+          await uploadToFTP(mp3Buffer, 'Lumiai.mp3');
+          
+          // Also save locally
+          const localPath = '/config/www/community/images';
+          if (!fs.existsSync(localPath)) {
+            fs.mkdirSync(localPath, { recursive: true });
+          }
+          fs.writeFileSync(path.join(localPath, 'Lumiai.mp3'), mp3Buffer);
+          
+          console.log('✅ Audio uploaded successfully via multipart endpoint');
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Audio uploaded' }));
+        }
+      } catch (e) {
+        console.error('Upload error:', e);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // --- CHECK MP3 ENDPOINT ---
+  if (req.method === 'GET' && req.url === '/api/check-mp3') {
+    const mp3Path = path.join('/config/www/community/images', 'Lumiai.mp3');
+    try {
+      const stats = fs.statSync(mp3Path);
+      const now = Date.now();
+      const fileAge = now - stats.mtimeMs;
+      
+      // Check if file exists and is less than 10 seconds old
+      if (fileAge < 10000) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: true, age: fileAge }));
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: false, age: fileAge }));
+      }
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ready: false, error: 'File not found' }));
+    }
+    return;
+  }
+
+  // --- TRANSCRIBE MP3 ENDPOINT ---
+  if (req.method === 'POST' && req.url === '/api/transcribe-mp3') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { mp3Path } = JSON.parse(body);
+        
+        // Read the MP3 file from the filesystem
+        const mp3FullPath = path.join('/config/www/community/images', mp3Path);
+        
+        if (!fs.existsSync(mp3FullPath)) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'MP3 file not found' }));
+        }
+        
+        const mp3Buffer = fs.readFileSync(mp3FullPath);
+        const mp3Base64 = mp3Buffer.toString('base64');
+        
+        // Send to OpenAI Whisper for transcription
+        const boundary = '----Boundary' + Math.random().toString(36).substring(2);
+        const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.mp3"\r\nContent-Type: audio/mp3\r\n\r\n`;
+        const post = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--`;
+        
+        const payload = Buffer.concat([
+          Buffer.from(pre, 'utf8'),
+          Buffer.from(mp3Base64, 'base64'),
+          Buffer.from(post, 'utf8')
+        ]);
+        
+        const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Authorization': `Bearer ${OAI_KEY}`
+          },
+          body: payload
+        });
+        
+        const ans = await whisperRes.json();
+        if (ans.error) throw new Error(ans.error.message);
+        
+        console.log('Transcription result:', ans.text);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ text: ans.text || "" }));
+      } catch (e) {
+        console.error('Transcription error:', e);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // --- HA SERVICE PROXY (Fallback for Home Assistant integration) ---
+  if (req.method === 'POST' && req.url === '/api/ha-service') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { domain, service, data } = JSON.parse(body);
+        const result = await callSvc(domain, service, data);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/save-config') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', () => {
@@ -649,11 +902,11 @@ const server = http.createServer(async (req, res) => {
               const r = await executeCmds(PENDING_REPEAT.cmds, entities);
               PENDING_REPEAT = null;
               let outputs = [];
-			  for (let i = 0; i < r.length; i++) {
-				if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
-				else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`); // Simplification for text UI
-			  }
-			  return replyJSON(res, { chat: outputs.join('\n') });
+              for (let i = 0; i < r.length; i++) {
+                if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
+                else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`); // Simplification for text UI
+              }
+              return replyJSON(res, { chat: outputs.join('\n') });
             }
         } else {
             PENDING_REPEAT = null;
@@ -905,4 +1158,8 @@ function replyJSON(res, obj) {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Lumi Demo AI Backend running at http://localhost:${PORT}`);
+  console.log(`Audio endpoints ready:`);
+  console.log(`  - POST /api/upload-audio (Direct WAV upload)`);
+  console.log(`  - GET  /api/check-mp3 (Check if MP3 is ready)`);
+  console.log(`  - POST /api/transcribe-mp3 (Transcribe MP3 via Whisper)`);
 });

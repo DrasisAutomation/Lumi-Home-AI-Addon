@@ -14,7 +14,6 @@
   <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="/firebase-config.js"></script>
   <style>
     *,
@@ -1122,6 +1121,25 @@
       transform: translateX(-50%) translateY(0)
     }
 
+    /* Recording indicator pulse */
+    .recording-pulse {
+      animation: recordingPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes recordingPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(242, 139, 130, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 15px rgba(242, 139, 130, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(242, 139, 130, 0);
+      }
+    }
+
     /* ═══ MOBILE ═══ */
     @media(max-width:700px) {
       #topbar {
@@ -1310,7 +1328,7 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd" type="text" autocomplete="off" placeholder="Ask Lumi anything…" onkeydown="onKey(event)" />
-            <button class="btn-v" onclick="startVoice()" title="Voice input" aria-label="Voice input">
+            <button class="btn-v" onclick="startVoiceRecording()" title="Voice input" aria-label="Voice input">
               <i data-lucide="mic"></i>
             </button>
             <button id="btn-spk" class="btn-spk" onclick="toggleSpeak()" title="Read aloud"
@@ -1333,7 +1351,7 @@
           <div class="sbar">
             <span class="sbar-ico"><i data-lucide="sparkles"></i></span>
             <input id="cmd2" type="text" autocomplete="off" placeholder="Ask Lumi…" onkeydown="onKey2(event)" />
-            <button class="btn-v" onclick="startVoice()" title="Voice" aria-label="Voice">
+            <button class="btn-v" onclick="startVoiceRecording()" title="Voice" aria-label="Voice">
               <i data-lucide="mic"></i>
             </button>
             <button id="btn-spk2" class="btn-spk" onclick="toggleSpeak()" title="Read aloud" aria-label="Read aloud">
@@ -1356,13 +1374,13 @@
       <div class="ring"></div>
       <div class="ring"></div>
       <div class="ring"></div>
-      <button class="v-btn" onclick="stopVoice()" aria-label="Stop listening">
-        <i data-lucide="mic"></i>
+      <button class="v-btn" onclick="stopVoiceRecording()" aria-label="Stop recording">
+        <i data-lucide="square"></i>
       </button>
     </div>
-    <div class="v-label">Listening</div>
+    <div class="v-label" id="voice-status">Recording</div>
     <div class="v-sub" id="voice-interim"></div>
-    <button class="v-cancel" onclick="stopVoice()">Cancel</button>
+    <button class="v-cancel" onclick="cancelVoiceRecording()">Cancel</button>
   </div>
 
   <!-- SCHEDULE DIALOG -->
@@ -1671,7 +1689,365 @@
       }
     }
 
+    /* ══════════════════════════════════════
+       VOICE RECORDING (Custom FTP-based)
+    ══════════════════════════════════════ */
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioStream = null;
+    let recordingCheckInterval = null;
+    let recordingTimer = null;
+    let recordingSeconds = 0;
 
+    async function startVoiceRecording() {
+      try {
+        // Request microphone permission
+        audioStream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            sampleSize: 16
+          } 
+        });
+        
+        // Create MediaRecorder with WAV-compatible settings
+        const options = {};
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options.mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options.mimeType = 'audio/webm';
+        }
+        
+        mediaRecorder = new MediaRecorder(audioStream, options);
+        
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+        
+        mediaRecorder.onstop = async () => {
+          // Update overlay status
+          document.getElementById('voice-status').textContent = 'Processing...';
+          document.getElementById('voice-interim').textContent = 'Converting and uploading...';
+          
+          // Combine chunks into single blob
+          const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          
+          // Convert to WAV format (required by Home Assistant service)
+          try {
+            const wavBlob = await convertToWav(audioBlob);
+            const arrayBuffer = await wavBlob.arrayBuffer();
+            const wavArray = Array.from(new Uint8Array(arrayBuffer));
+            
+            // Call Home Assistant service to upload via FTP
+            await callHAServiceForRecording(wavArray);
+            
+            // Start polling for the MP3 file
+            startPollingForMP3();
+          } catch (err) {
+            console.error('Conversion error:', err);
+            toast('Failed to process audio');
+            closeVoiceOverlay();
+          }
+        };
+        
+        // Start recording
+        mediaRecorder.start(1000); // Collect data every second
+        isRecording = true;
+        recordingSeconds = 0;
+        
+        // Show recording overlay
+        document.getElementById('voice-ov').classList.add('open');
+        document.getElementById('voice-status').textContent = 'Recording';
+        document.getElementById('voice-interim').textContent = '00:00';
+        
+        // Update timer
+        recordingTimer = setInterval(() => {
+          recordingSeconds++;
+          const mins = Math.floor(recordingSeconds / 60);
+          const secs = recordingSeconds % 60;
+          document.getElementById('voice-interim').textContent = 
+            `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          
+          // Auto-stop after 30 seconds
+          if (recordingSeconds >= 30) {
+            stopVoiceRecording();
+          }
+        }, 1000);
+        
+        toast('Recording started...');
+        
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        if (error.name === 'NotAllowedError') {
+          toast('Microphone access denied');
+        } else if (error.name === 'NotFoundError') {
+          toast('No microphone found');
+        } else {
+          toast('Cannot access microphone');
+        }
+      }
+    }
+
+    async function convertToWav(audioBlob) {
+      // Create AudioContext
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      
+      // Decode the audio data
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      // Resample to 16kHz mono if needed
+      let processedBuffer = audioBuffer;
+      if (audioBuffer.sampleRate !== 16000) {
+        processedBuffer = await resampleAudio(audioContext, audioBuffer, 16000);
+      }
+      
+      // Convert to mono if stereo
+      if (processedBuffer.numberOfChannels > 1) {
+        processedBuffer = convertToMono(audioContext, processedBuffer);
+      }
+      
+      // Convert to WAV
+      const wavBuffer = audioBufferToWav(processedBuffer);
+      await audioContext.close();
+      
+      return new Blob([wavBuffer], { type: 'audio/wav' });
+    }
+
+    async function resampleAudio(ctx, audioBuffer, targetSampleRate) {
+      const offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.duration * targetSampleRate,
+        targetSampleRate
+      );
+      
+      const source = offlineCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineCtx.destination);
+      source.start();
+      
+      return await offlineCtx.startRendering();
+    }
+
+    function convertToMono(ctx, audioBuffer) {
+      const offlineCtx = new OfflineAudioContext(
+        1,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+      );
+      
+      const source = offlineCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      
+      const merger = offlineCtx.createChannelMerger(1);
+      source.connect(merger, 0, 0);
+      if (audioBuffer.numberOfChannels > 1) {
+        source.connect(merger, 0, 1);
+      }
+      merger.connect(offlineCtx.destination);
+      source.start();
+      
+      return offlineCtx.startRendering();
+    }
+
+    function audioBufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const format = 1; // PCM
+      const bitDepth = 16;
+      
+      // Get the audio data
+      const channelData = [];
+      for (let i = 0; i < numChannels; i++) {
+        channelData.push(buffer.getChannelData(i));
+      }
+      
+      // Interleave if stereo
+      let samples;
+      if (numChannels === 2) {
+        samples = new Float32Array(channelData[0].length * 2);
+        for (let i = 0; i < channelData[0].length; i++) {
+          samples[i * 2] = channelData[0][i];
+          samples[i * 2 + 1] = channelData[1][i];
+        }
+      } else {
+        samples = channelData[0];
+      }
+      
+      const dataLength = samples.length * (bitDepth / 8);
+      const bufferLength = 44 + dataLength;
+      const arrayBuffer = new ArrayBuffer(bufferLength);
+      const view = new DataView(arrayBuffer);
+      
+      // WAV header
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataLength, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, format, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true);
+      view.setUint16(32, numChannels * (bitDepth / 8), true);
+      view.setUint16(34, bitDepth, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, dataLength, true);
+      
+      // Write audio data
+      const offset = 44;
+      for (let i = 0; i < samples.length; i++) {
+        const sample = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      }
+      
+      return arrayBuffer;
+    }
+
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+
+    async function callHAServiceForRecording(wavArray) {
+      try {
+        // Call Home Assistant service through WebSocket
+        await wsSend({
+          type: 'call_service',
+          domain: 'LumiaiRecorder',
+          service: 'process',
+          service_data: {
+            wav: wavArray,
+            target: ''
+          }
+        });
+        
+        console.log('Recording sent to HA service');
+      } catch (error) {
+        console.error('Error calling HA service:', error);
+        throw error;
+      }
+    }
+
+    function startPollingForMP3() {
+      let attempts = 0;
+      const maxAttempts = 40; // 20 seconds max
+      
+      document.getElementById('voice-interim').textContent = 'Waiting for file...';
+      
+      recordingCheckInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/check-mp3');
+          const data = await response.json();
+          
+          if (data.ready) {
+            clearInterval(recordingCheckInterval);
+            recordingCheckInterval = null;
+            
+            document.getElementById('voice-interim').textContent = 'Transcribing...';
+            
+            // MP3 is ready, now transcribe it
+            await transcribeMP3();
+          }
+          
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(recordingCheckInterval);
+            recordingCheckInterval = null;
+            closeVoiceOverlay();
+            toast('Recording processing timeout');
+          }
+        } catch (error) {
+          console.error('Error checking MP3:', error);
+        }
+      }, 500);
+    }
+
+    async function transcribeMP3() {
+      try {
+        const response = await fetch('/api/transcribe-mp3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mp3Path: 'Lumiai.mp3' })
+        });
+        
+        const data = await response.json();
+        
+        closeVoiceOverlay();
+        
+        if (data.error) {
+          toast('Transcription failed: ' + data.error);
+          return;
+        }
+        
+        if (data.text) {
+          // Set the transcribed text to the input field
+          const inputId = chatOn ? 'cmd2' : 'cmd';
+          const inputEl = document.getElementById(inputId);
+          inputEl.value = data.text;
+          inputEl.focus();
+          
+          toast('Ready! Press Enter or click send');
+        } else {
+          toast('No speech detected');
+        }
+      } catch (error) {
+        closeVoiceOverlay();
+        console.error('Error transcribing:', error);
+        toast('Transcription failed');
+      }
+    }
+
+    function stopVoiceRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+    }
+
+    function cancelVoiceRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+      
+      if (recordingCheckInterval) {
+        clearInterval(recordingCheckInterval);
+        recordingCheckInterval = null;
+      }
+      
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+      }
+      
+      closeVoiceOverlay();
+      toast('Recording cancelled');
+    }
+
+    function closeVoiceOverlay() {
+      document.getElementById('voice-ov').classList.remove('open');
+      document.getElementById('voice-interim').textContent = '';
+      document.getElementById('voice-status').textContent = 'Recording';
+      
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+      }
+    }
 
     /* ══════════════════════════════════════
        CHAT UI
@@ -1778,9 +2154,6 @@
     function onKey(e) { if (e.key === 'Enter') send(false); }
     function onKey2(e) { if (e.key === 'Enter') send(true); }
 
-
-
-
     /* ══════════════════════════════════════
        TEXT-TO-SPEECH
     ══════════════════════════════════════ */
@@ -1832,38 +2205,6 @@
       utt.pitch = 1.1; // slightly higher = more feminine if no female voice found
       utt.volume = 1;
       window.speechSynthesis.speak(utt);
-    }
-
-    /* ══════════════════════════════════════
-       VOICE
-    ══════════════════════════════════════ */
-    let voiceRec = null;
-    function startVoice() {
-      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { toast('Voice not supported'); return; }
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      voiceRec = new SR(); voiceRec.lang = 'en-US'; voiceRec.interimResults = true; voiceRec.continuous = false;
-      document.getElementById('voice-ov').classList.add('open');
-      document.getElementById('voice-interim').textContent = '';
-      voiceRec.onresult = e => {
-        let interim = '', final = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) final += e.results[i][0].transcript;
-          else interim += e.results[i][0].transcript;
-        }
-        document.getElementById('voice-interim').textContent = interim || final;
-        if (final) {
-          const id = chatOn ? 'cmd2' : 'cmd';
-          document.getElementById(id).value = final;
-          closeVoice(); send(chatOn);
-        }
-      };
-      voiceRec.onerror = () => closeVoice(); voiceRec.onend = () => closeVoice();
-      voiceRec.start();
-    }
-    function stopVoice() { if (voiceRec) voiceRec.stop(); closeVoice(); }
-    function closeVoice() {
-      document.getElementById('voice-ov').classList.remove('open');
-      document.getElementById('voice-interim').textContent = '';
     }
 
     /* ══════════════════════════════════════
@@ -1937,25 +2278,6 @@
        BOOT & SECURE GUARD
     ══════════════════════════════════════ */
     (async () => {
-      // 🚨 Bypassing Login Redirect for HA Ingress 🚨
-      /*
-      const authMethod = localStorage.getItem('authMethod');
-      const currentUser = localStorage.getItem('currentUser');
-
-      if (!authMethod || !currentUser) {
-        window.location.href = '/login.html';
-        return;
-      }
-
-      // Real-time revocation check
-      db.collection('users').doc(currentUser).onSnapshot((doc) => {
-        if (!doc.exists || !doc.data().active) {
-          localStorage.clear();
-          window.location.href = '/login.html';
-        }
-      });
-      */
-
       await loadConfig();
       connect();
     })();
