@@ -155,7 +155,8 @@ async function callSvc(domain, service, data) {
     const errText = await r.text();
     throw new Error(`HA Error ${r.status}: ${errText}`);
   }
-  return r.json();
+  const text = await r.text();
+  try { return text ? JSON.parse(text) : {}; } catch(e) { return {}; }
 }
 
 function buildPrompt(entsStr) {
@@ -1000,7 +1001,7 @@ const server = http.createServer(async (req, res) => {
           }
           if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\n') });
           
-          return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0].chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
+          return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0]?.chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
         }
       } catch (e) {
         return replyJSON(res, { chat: `Ran into an issue boss: ${e.message}` });
