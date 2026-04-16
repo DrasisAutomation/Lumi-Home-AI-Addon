@@ -1758,7 +1758,7 @@
         try { parsed = await r.json(); } catch (e) { throw new Error('Server returned invalid data'); }
 
         rmTyp(tid);
-        if (parsed.sessionId && (typeof CURRENT_SESSION_ID !== 'undefined') && parsed.sessionId !== CURRENT_SESSION_ID) {
+        if (parsed.sessionId && typeof CURRENT_SESSION_ID !== 'undefined') {
             CURRENT_SESSION_ID = parsed.sessionId;
             if (typeof loadSessions === 'function') loadSessions();
         }
