@@ -184,6 +184,7 @@ function getEnergyContext() {
         let d30Units = 0;
         
         const device30 = {};
+        const device7 = {};
         const deviceToday = {};
         
         let dailyBreakdown = '';
@@ -204,7 +205,12 @@ function getEnergyContext() {
                     deviceToday[e] = (deviceToday[e]||0) + (d.units||0);
                 });
             }
-            if (dateMs >= d7Ms) { d7Units += units; }
+            if (dateMs >= d7Ms) { 
+                d7Units += units; 
+                Object.entries(dailyData[date].devices || {}).forEach(([e, d]) => {
+                    device7[e] = (device7[e]||0) + (d.units||0);
+                });
+            }
             if (dateMs >= d30Ms) { 
                 d30Units += units; 
                 Object.entries(dailyData[date].devices || {}).forEach(([e, d]) => {
@@ -218,22 +224,25 @@ function getEnergyContext() {
             }
         }
         
-        const highest30Ent = Object.keys(device30).reduce((a,b)=>device30[a]>device30[b]?a:b, Object.keys(device30)[0]||'none');
-        const highest30Name = deviceMap[highest30Ent] || highest30Ent;
-        const highest30Val = Object.keys(device30).length ? device30[highest30Ent].toFixed(2) : "0.00";
-        
-        const highestTodayEnt = Object.keys(deviceToday).reduce((a,b)=>deviceToday[a]>deviceToday[b]?a:b, Object.keys(deviceToday)[0]||'none');
-        const highestTodayName = deviceMap[highestTodayEnt] || highestTodayEnt;
-        const highestTodayVal = Object.keys(deviceToday).length ? deviceToday[highestTodayEnt].toFixed(2) : "0.00";
+        function getTop3(devMap) {
+            const arr = Object.entries(devMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+            if (!arr.length) return 'None';
+            return arr.map((x, i) => `${i+1}. ${deviceMap[x[0]]||x[0]} (${x[1].toFixed(2)} kWh)`).join(', ');
+        }
         
         return `\n\n-----------------------------------------
 💡 ENERGY MONITORING STATS (Use this to answer questions about power/energy usage)
 -----------------------------------------
 Current Rate: ₹${rate}/kWh
-Today (${todayStr}): ${todayUnits.toFixed(2)} kWh (₹${(todayUnits*rate).toFixed(2)}). Highest Device: ${highestTodayName} (${highestTodayVal} kWh)
+Today (${todayStr}): ${todayUnits.toFixed(2)} kWh (₹${(todayUnits*rate).toFixed(2)})
+Today's Top Devices: ${getTop3(deviceToday)}
+
 Last 7 Days: ${d7Units.toFixed(2)} kWh (₹${(d7Units*rate).toFixed(2)})
+7-Day Top Devices: ${getTop3(device7)}
+
 Last 30 Days: ${d30Units.toFixed(2)} kWh (₹${(d30Units*rate).toFixed(2)})
-Highest 30-Day Device: ${highest30Name} (${highest30Val} kWh)
+30-Day Top Devices: ${getTop3(device30)}
+
 Recent Daily History:${dailyBreakdown}
 * To answer queries about specific dates, refer to the "Recent Daily History".`;
     } catch(e) {
