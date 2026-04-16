@@ -1727,21 +1727,26 @@
     ══════════════════════════════════════ */
     let ttsEnabled = false, ttsVoice = null;
     function loadTTSVoice() {
-      const pick = () => {
-        const voices = window.speechSynthesis.getVoices();
-        ttsVoice = voices.find(v => /google uk english female/i.test(v.name)) ||
-                   voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang)) ||
-                   voices.find(v => /en/i.test(v.lang)) || null;
-      };
-      pick();
-      if (window.speechSynthesis.onvoiceschanged !== undefined)
-        window.speechSynthesis.onvoiceschanged = pick;
+      try {
+        if (!window.speechSynthesis) return;
+        const pick = () => {
+          const voices = window.speechSynthesis.getVoices();
+          ttsVoice = voices.find(v => /google uk english female/i.test(v.name)) ||
+                     voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang)) ||
+                     voices.find(v => /en/i.test(v.lang)) || null;
+        };
+        pick();
+        if (window.speechSynthesis.onvoiceschanged !== undefined)
+          window.speechSynthesis.onvoiceschanged = pick;
+      } catch (e) { console.warn("TTS Init Error:", e); }
     }
     loadTTSVoice();
 
     function toggleSpeak() {
       ttsEnabled = !ttsEnabled;
-      if (!ttsEnabled) window.speechSynthesis.cancel();
+      try {
+        if (!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {}
       ['btn-spk', 'btn-spk2'].forEach(id => {
         const b = document.getElementById(id);
         if (!b) return;
@@ -1755,14 +1760,22 @@
 
     function speakText(txt) {
       if (!ttsEnabled || !txt) return;
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(txt);
-      if (ttsVoice) utt.voice = ttsVoice;
-      utt.lang = 'en-US';
-      utt.rate = 1.0;
-      utt.pitch = 1.1;
-      utt.volume = 1;
-      window.speechSynthesis.speak(utt);
+      try {
+        if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+            console.warn("TTS is not supported in this browser execution context.");
+            return;
+        }
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(txt);
+        if (ttsVoice) utt.voice = ttsVoice;
+        utt.lang = 'en-US';
+        utt.rate = 1.0;
+        utt.pitch = 1.1;
+        utt.volume = 1;
+        window.speechSynthesis.speak(utt);
+      } catch (e) {
+        console.warn("TTS Error:", e);
+      }
     }
 
     /* ══════════════════════════════════════
