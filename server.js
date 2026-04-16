@@ -159,7 +159,90 @@ async function callSvc(domain, service, data) {
   try { return text ? JSON.parse(text) : {}; } catch(e) { return {}; }
 }
 
-function buildPrompt(entsStr) {
+function getEnergyContext() {
+    try {
+        const energyDir = fs.existsSync('/data/options.json') ? '/config/energy_monitor' : path.join(DIR, '../Energy Monitoring/data');
+        const dailyFile = path.join(energyDir, 'daily_usage.json');
+        const devicesFile = path.join(energyDir, 'devices.json');
+        
+        if (!fs.existsSync(dailyFile) || !fs.existsSync(devicesFile)) return "";
+        
+        const dailyData = JSON.parse(fs.readFileSync(dailyFile, 'utf8'));
+        const devicesData = JSON.parse(fs.readFileSync(devicesFile, 'utf8'));
+        
+        const deviceMap = {};
+        (devicesData.devices || []).forEach(d => { deviceMap[d.entity] = d.name || d.entity; });
+        const rate = (devicesData.currentPricing && devicesData.currentPricing.rate) || 0;
+        
+        const dates = Object.keys(dailyData).sort((a,b)=>b.localeCompare(a));
+        if(dates.length === 0) return "";
+        
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); 
+        
+        let todayUnits = 0;
+        let d7Units = 0;
+        let d30Units = 0;
+        
+        const device30 = {};
+        const deviceToday = {};
+        
+        let dailyBreakdown = '';
+        let count = 0;
+        
+        const nowMs = Date.now();
+        const d7Ms = nowMs - 7*86400*1000;
+        const d30Ms = nowMs - 30*86400*1000;
+        
+        for (const date of dates) {
+            const dateObj = new Date(date + "T00:00:00+05:30");
+            const dateMs = dateObj.getTime();
+            const units = dailyData[date].total_units || 0;
+            
+            if (date === todayStr || dateMs >= nowMs - 86400*1000) { 
+                todayUnits += units; 
+                Object.entries(dailyData[date].devices || {}).forEach(([e, d]) => {
+                    deviceToday[e] = (deviceToday[e]||0) + (d.units||0);
+                });
+            }
+            if (dateMs >= d7Ms) { d7Units += units; }
+            if (dateMs >= d30Ms) { 
+                d30Units += units; 
+                Object.entries(dailyData[date].devices || {}).forEach(([e, d]) => {
+                    device30[e] = (device30[e]||0) + (d.units||0);
+                });
+            }
+            
+            if (count < 7) {
+                dailyBreakdown += `\n- ${date}: ${units.toFixed(2)} kWh`;
+                count++;
+            }
+        }
+        
+        const highest30Ent = Object.keys(device30).reduce((a,b)=>device30[a]>device30[b]?a:b, Object.keys(device30)[0]||'none');
+        const highest30Name = deviceMap[highest30Ent] || highest30Ent;
+        const highest30Val = Object.keys(device30).length ? device30[highest30Ent].toFixed(2) : "0.00";
+        
+        const highestTodayEnt = Object.keys(deviceToday).reduce((a,b)=>deviceToday[a]>deviceToday[b]?a:b, Object.keys(deviceToday)[0]||'none');
+        const highestTodayName = deviceMap[highestTodayEnt] || highestTodayEnt;
+        const highestTodayVal = Object.keys(deviceToday).length ? deviceToday[highestTodayEnt].toFixed(2) : "0.00";
+        
+        return `\n\n-----------------------------------------
+💡 ENERGY MONITORING STATS (Use this to answer questions about power/energy usage)
+-----------------------------------------
+Current Rate: ₹${rate}/kWh
+Today (${todayStr}): ${todayUnits.toFixed(2)} kWh (₹${(todayUnits*rate).toFixed(2)}). Highest Device: ${highestTodayName} (${highestTodayVal} kWh)
+Last 7 Days: ${d7Units.toFixed(2)} kWh (₹${(d7Units*rate).toFixed(2)})
+Last 30 Days: ${d30Units.toFixed(2)} kWh (₹${(d30Units*rate).toFixed(2)})
+Highest 30-Day Device: ${highest30Name} (${highest30Val} kWh)
+Recent Daily History:${dailyBreakdown}
+* To answer queries about specific dates, refer to the "Recent Daily History".`;
+    } catch(e) {
+        console.log("Energy context error:", e.message);
+        return "";
+    }
+}
+
+function buildPrompt(entsStr, energyStatsStr = "") {
   const mem = readJson(MEMORY_FILE);
   return `You are Lumi, a smart home AI assistant.
 
@@ -304,7 +387,7 @@ SERVICES & ENTITY DOMAINS (CRITICAL RULES):
 light→turn_on(brightness_pct 0-100, color_temp_kelvin 2000-6500 ONLY, rgb_color[r,g,b])/turn_off/toggle
 switch/fan/input_boolean→turn_on/turn_off/toggle (Use this for curtains IF entity starts with switch.)
 cover→open_cover/close_cover/set_cover_position(position 0-100) (Use this for curtains IF entity starts with cover.)
-media_player→media_play/media_pause/volume_set(volume_level 0-1)
+media_player→media_play/media_pause/volume_set(volume_level 0-1)/play_media(media_content_type="music", media_content_id="search query")
 climate→set_temperature(temperature)/set_hvac_mode (If exact AC degree switch not in memory)
 scene/script→turn_on
 
@@ -358,6 +441,18 @@ AC SWITCH (If learned AC entity starts with switch. or light.):
   "chat":"Done boss, triggered the AC switch."
 }
 
+PLAY MEDIA (When asked to play a song or movie on a speaker):
+{
+  "domain":"media_player",
+  "service":"play_media",
+  "data":{
+    "entity_id":"media_player.speaker_entity",
+    "media_content_type":"music",
+    "media_content_id":"<song name> from <movie name>"
+  },
+  "chat":"Playing it right away boss!"
+}
+
 MULTIPLE ITEMS (Including Actions & Learning):
 If you need to return multiple commands OR multiple learned variables in the same response, ALWAYS wrap them inside a single JSON array:
 [
@@ -408,12 +503,13 @@ LEARNING (CRITICAL - YOU MUST INCLUDE THE 'learn' OBJECT IF USER TEACHES YOU SOM
 
 -----------------------------------------
 ENTITIES:
-${entsStr}`;
+${entsStr}${energyStatsStr}`;
 }
 
 async function parseNL(txt, entsStr) {
+  const energyStats = getEnergyContext();
   const msgs = [
-    { role: 'system', content: buildPrompt(entsStr) },
+    { role: 'system', content: buildPrompt(entsStr, energyStats) },
     ...CHAT_HISTORY,
     { role: 'user', content: txt }
   ];
