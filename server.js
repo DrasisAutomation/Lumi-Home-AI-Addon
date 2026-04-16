@@ -27,11 +27,13 @@ const FTP_CONFIG = {
 const HISTORY_FILE = path.join(DIR, 'history.json');
 const SCHEDULE_FILE = path.join(DIR, 'schedule.json');
 const MEMORY_FILE = path.join(DIR, 'memory.json');
+const CHATHISTORY_FILE = path.join(DIR, 'chathistory.json');
 
 // Ensure json files exist
 try { if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(SCHEDULE_FILE)) fs.writeFileSync(SCHEDULE_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(MEMORY_FILE)) fs.writeFileSync(MEMORY_FILE, JSON.stringify({rooms: {}, ac: {}})); } catch (_) {}
+try { if (!fs.existsSync(CHATHISTORY_FILE)) fs.writeFileSync(CHATHISTORY_FILE, '{}'); } catch (_) {}
 
 // Ensure local audio directory exists
 const LOCAL_AUDIO_PATH = '/config/www/community/images';
@@ -55,10 +57,16 @@ const MIME = {
 // State
 let PENDING_REPEAT = null;
 let SC_TIMERS = {};
-let CHAT_HISTORY = [];
 
 // --- UTILS ---
-function readJson(fp) { try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return fp === MEMORY_FILE ? { rooms: {} } : []; } }
+function readJson(fp) { 
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } 
+  catch { 
+    if (fp === MEMORY_FILE) return { rooms: {} };
+    if (fp === CHATHISTORY_FILE) return {};
+    return []; 
+  } 
+}
 function writeJson(fp, d) { fs.writeFileSync(fp, JSON.stringify(d, null, 2)); }
 
 function getIstTimeStr(d) {
@@ -515,13 +523,18 @@ ENTITIES:
 ${entsStr}${energyStatsStr}`;
 }
 
-async function parseNL(txt, entsStr) {
+async function parseNL(txt, entsStr, sid) {
   const energyStats = getEnergyContext();
   const msgs = [
-    { role: 'system', content: buildPrompt(entsStr, energyStats) },
-    ...CHAT_HISTORY,
-    { role: 'user', content: txt }
+    { role: 'system', content: buildPrompt(entsStr, energyStats) }
   ];
+  const hist = readJson(CHATHISTORY_FILE);
+  if (hist[sid] && hist[sid].messages) {
+      hist[sid].messages.slice(-10).forEach(m => {
+          if (!m.isHtml && m.role && m.content) msgs.push({ role: m.role, content: m.content });
+      });
+  }
+  msgs.push({ role: 'user', content: txt });
 
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -555,10 +568,6 @@ async function parseNL(txt, entsStr) {
   } else {
     parsed = { chat: raw };
   }
-  
-  CHAT_HISTORY.push({ role: 'user', content: txt });
-  CHAT_HISTORY.push({ role: 'assistant', content: raw });
-  if (CHAT_HISTORY.length > 20) CHAT_HISTORY = CHAT_HISTORY.slice(-20);
   
   return parsed;
 }
@@ -895,6 +904,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // --- SESSION HISTORY ENDPOINT ---
+  if (req.method === 'GET' && req.url === '/api/sessions') {
+    const s = readJson(CHATHISTORY_FILE);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(s));
+  }
+  if (req.method === 'DELETE' && req.url.startsWith('/api/sessions')) {
+    const id = req.url.split('id=')[1];
+    let s = readJson(CHATHISTORY_FILE);
+    if (id && s[id]) delete s[id];
+    writeJson(CHATHISTORY_FILE, s);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ok:true}));
+  }
+
   // --- STATES ENDPOINT ---
   if (req.method === 'GET' && req.url === '/api/states') {
     try {
@@ -946,9 +970,21 @@ const server = http.createServer(async (req, res) => {
     let body = ''; req.on('data', c => body += c);
     req.on('end', async () => {
       try {
-        const { text, entities } = JSON.parse(body);
+        const { text, entities, sessionId } = JSON.parse(body);
         let q = (text || '').toLowerCase().trim();
         const entsStr = (entities || []).map(e => `${e.name}|${e.entity_id}|${e.state}`).join('\n') || '(none)';
+        const sid = sessionId || Date.now().toString();
+
+        const endChat = (data) => {
+            let s = readJson(CHATHISTORY_FILE);
+            if (!s[sid]) s[sid] = { id: sid, title: (text||'').substring(0, 30) || 'New Chat', messages: [], updatedAt: Date.now() };
+            s[sid].messages.push({ role: 'user', content: text||'' });
+            s[sid].messages.push({ role: 'assistant', content: data.chat, isHtml: data.isHtml || false });
+            s[sid].updatedAt = Date.now();
+            writeJson(CHATHISTORY_FILE, s);
+            data.sessionId = sid;
+            return replyJSON(res, data);
+        };
 
         // Follow-up "YES"
         if (q === 'yes' || q === 'yeah' || q === 'yep') {
@@ -960,7 +996,8 @@ const server = http.createServer(async (req, res) => {
                 if (r[i].err) outputs.push(`${r[i].name} failed: ${r[i].err}`);
                 else outputs.push(`${getIstTimeStr()} | ${r[i].name.toLowerCase()} | ON`);
               }
-              return replyJSON(res, { chat: outputs.join('\n') });
+        
+              return endChat({ chat: outputs.join('\n') });
             }
         } else {
             PENDING_REPEAT = null;
@@ -968,15 +1005,19 @@ const server = http.createServer(async (req, res) => {
 
         // LOGS & HISTORY & MEMORY
         if (q.includes('clear') && q.includes('memory')) {
-            CHAT_HISTORY = [];
             writeJson(MEMORY_FILE, { rooms: {} });
-            return replyJSON(res, { chat: "Done! I have wiped my memory file and conversation context." });
+            let s = readJson(CHATHISTORY_FILE);
+            if(s[sid]) s[sid].messages = [];
+            writeJson(CHATHISTORY_FILE, s);
+            return endChat({ chat: "Done! I have wiped my memory file and conversation context." });
         }
         
         if ((q.includes('history') || q.includes('log')) && (q.includes('delete') || q.includes('remove') || q.includes('clear')) && q.includes('all')) {
             writeJson(HISTORY_FILE, []);
-            CHAT_HISTORY = [];
-            return replyJSON(res, { chat: "Done boss! I have cleared your entire action history." });
+            let s = readJson(CHATHISTORY_FILE);
+            if(s[sid]) s[sid].messages = [];
+            writeJson(CHATHISTORY_FILE, s);
+            return endChat({ chat: "Done boss! I have cleared your entire action history." });
         }
 
         const logMatch = q.match(/last\s*(\d+)?\s*log/);
@@ -984,7 +1025,7 @@ const server = http.createServer(async (req, res) => {
           const count = parseInt(logMatch?.[1] || 10);
           const h = readJson(HISTORY_FILE);
           const l = h.slice(-count);
-          if (l.length === 0) return replyJSON(res, {chat: "No logs found boss."});
+          if (l.length === 0) return endChat({chat: "No logs found boss."});
           
           let logHtml = `<div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px">`;
           l.forEach(x => {
@@ -996,7 +1037,7 @@ const server = http.createServer(async (req, res) => {
             </div>`;
           });
           logHtml += `</div>`;
-          return replyJSON(res, {chat: logHtml, isHtml: true});
+          return endChat({chat: logHtml, isHtml: true});
         }
 
         // REPEAT LAST ACTION
@@ -1009,25 +1050,25 @@ const server = http.createServer(async (req, res) => {
               const name = (r[0] && !r[0].err) ? r[0].name : "the device";
               let actionStr = 'turned ON';
               if (c.service && (c.service.includes('off') || c.service.includes('close'))) actionStr = 'turned OFF';
-              return replyJSON(res, { chat: `I have ${actionStr} ${name.toLowerCase()} boss!` });
+              return endChat({ chat: `I have ${actionStr} ${name.toLowerCase()} boss!` });
             }
           }
-          return replyJSON(res, { chat: "No previous action to repeat boss." });
+          return endChat({ chat: "No previous action to repeat boss." });
         }
 
         // SCHEDULES MANAGEMENT
         if (q.includes('schedule') || q.includes('schedules')) {
           if (q.match(/\b(show|what|list)\b/)) {
             const sum = readJson(SCHEDULE_FILE).length;
-            if (sum === 0) return replyJSON(res, { chat: "No schedules found boss." });
-            return replyJSON(res, { chat: `You have ${sum} scheduled actions boss. Check the schedule icon at the top for details!` });
+            if (sum === 0) return endChat({ chat: "No schedules found boss." });
+            return endChat({ chat: `You have ${sum} scheduled actions boss. Check the schedule icon at the top for details!` });
           }
           if (q.includes('remove') || q.includes('delete') || q.includes('cancel') || q.includes('clear')) {
             let s = readJson(SCHEDULE_FILE);
             if (q.includes('all')) {
               s.forEach(x => { if(SC_TIMERS[x.id]) { clearTimeout(SC_TIMERS[x.id]); delete SC_TIMERS[x.id]; } });
               writeJson(SCHEDULE_FILE, []);
-              return replyJSON(res, { chat: "Done boss! I have removed all schedules." });
+              return endChat({ chat: "Done boss! I have removed all schedules." });
             }
           }
         }
@@ -1042,7 +1083,8 @@ const server = http.createServer(async (req, res) => {
           const h = readJson(HISTORY_FILE);
           let found = h.filter(x => Math.abs(new Date(x.timestamp).getTime() - target) <= windowMs);
           
-          if (!found.length) return replyJSON(res, { chat: "No actions found around that time boss."});
+          
+          if (!found.length) return endChat({ chat: "No actions found around that time boss."});
           
           PENDING_REPEAT = { cmds: found.map(x => x.rawCmd).filter(x => !!x) };
           
@@ -1056,7 +1098,7 @@ const server = http.createServer(async (req, res) => {
             </div>`;
           });
           logHtml += `</div><div style="margin-top:10px;font-size:13.5px">Do you want me to repeat this?</div>`;
-          return replyJSON(res, {chat: logHtml, isHtml: true});
+          return endChat({chat: logHtml, isHtml: true});
         }
 
         // DELAYS & SCHEDULES
@@ -1091,8 +1133,8 @@ const server = http.createServer(async (req, res) => {
 
         // OPENAI NLP
         const aiQuery = delayMs > 0 ? `${cleanedQ} (CRITICAL: User is scheduling this. DO NOT ask for confirmation, output the action JSON immediately.)` : (cleanedQ || "turn on");
-        const parsed = await parseNL(aiQuery, entsStr);
-        if (parsed.chat && !parsed.domain && !parsed.learn) return replyJSON(res, { chat: parsed.chat });
+        const parsed = await parseNL(aiQuery, entsStr, sid);
+        if (parsed.chat && !parsed.domain && !parsed.learn) return endChat({ chat: parsed.chat });
         
         const cmds = Array.isArray(parsed) ? parsed : [parsed];
 
