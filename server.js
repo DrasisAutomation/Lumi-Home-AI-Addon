@@ -1033,7 +1033,8 @@ const server = http.createServer(async (req, res) => {
         }
 
         // TIME LOOKBACK
-        if (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(\d+)\s*mis\s*befor/)) {
+        const isEnergyQuery = q.includes('power') || q.includes('energy') || q.includes('consumption') || q.includes('cost') || q.includes('bill') || q.includes('kwh');
+        if (!isEnergyQuery && (q.includes('yesterday') || q.includes('ago') || q.includes('before') || q.match(/(\d+)\s*mis\s*befor/))) {
           let target = Date.now();
           let windowMs = 15 * 60 * 1000;
           if (q.includes('yesterday')) target -= 24 * 3600 * 1000;
