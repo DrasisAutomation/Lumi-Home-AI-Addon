@@ -1871,7 +1871,7 @@
     function addA(txt, isHtml) {
       const c = document.getElementById('msgs');
       const d = document.createElement('div'); d.className = 'mr';
-      d.innerHTML = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a" ${isHtml ? 'style="width:100%;max-width:100%;background:transparent!important;padding:0;box-shadow:none"' : ''}>${isHtml ? txt : esc(txt)}</div>`;
+      d.innerHTML = `<div class="av"><i data-lucide="bot"></i></div><div class="bb a">${isHtml ? txt : esc(txt)}</div>`;
       c.appendChild(d); c.scrollTop = c.scrollHeight;
       lucide.createIcons({ nodes: d.querySelectorAll('[data-lucide]') });
       if (typeof speakText === 'function' && !isHtml) speakText(txt);

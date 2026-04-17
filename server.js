@@ -291,10 +291,11 @@ ${JSON.stringify(commonMem, null, 2)}
 -----------------------------------------
 - NEVER output a 'domain' or 'service' action for catalog or informational queries! Return ONLY the 'chat' field.
 - ALWAYS style your catalog responses beautifully using HTML tags! Use <b> for bolding titles, <br> for new lines, and nested <ul>/<li> for lists.
-- STRICT NAVIGATION FLOW:
-  1. "show catalogue": ONLY list the available BRANDS. Do NOT show their products yet.
-  2. "show [brand]": ONLY list the available PRODUCTS under that brand. Do NOT show their specs or types yet.
-  3. "show [product]": Tightly list its SPECS and TYPES natively using HTML.
+- DYNAMIC NAVIGATION FLOW:
+  1. "show catalogue": List the available BRANDS cleanly.
+  2. "show [brand]": List the available PRODUCTS under that brand efficiently.
+  3. "show [product]": Cleanly list its SPECS and TYPES contextually using HTML.
+- DO NOT force strict clarification loops! If the user mentions a specific product or brand, intuitively output its details directly instead of asking for confirmation!
 
 -----------------------------------------
 🎯 CONTEXT AWARE INTELLIGENCE
@@ -1321,3 +1322,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`  - GET  /api/check-mp3 (Check if MP3 is ready)`);
   console.log(`  - POST /api/transcribe-mp3 (Transcribe MP3 via Whisper)`);
 });
+
