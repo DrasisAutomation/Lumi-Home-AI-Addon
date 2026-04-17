@@ -290,7 +290,7 @@ ${JSON.stringify(commonMem, null, 2)}
 🛒 CATALOGUE & INFO QUERIES (CRITICAL RULES)
 -----------------------------------------
 - NEVER output a 'domain' or 'service' action for catalog or informational queries! Return ONLY the 'chat' field.
-- ALWAYS style your catalog responses beautifully using HTML tags! Use <b> for bolding titles, <br> for new lines, and nested <ul>/<li> for lists.
+- ALWAYS style your catalog responses beautifully using HTML tags! Use <b> for headings, <br> for spacing, and enclose details inside <div style="margin-left:14px; padding-left:10px; border-left:2px solid rgba(138,180,248,0.3); margin-top:4px;">. Do NOT use bullet points (<ul>/<li>) everywhere!
 - DYNAMIC NAVIGATION FLOW:
   1. "show catalogue": List the available BRANDS cleanly.
   2. "show [brand]": List the available PRODUCTS under that brand efficiently.
@@ -1322,4 +1322,5 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`  - GET  /api/check-mp3 (Check if MP3 is ready)`);
   console.log(`  - POST /api/transcribe-mp3 (Transcribe MP3 via Whisper)`);
 });
+
 
