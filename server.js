@@ -287,6 +287,14 @@ ${JSON.stringify(commonMem, null, 2)}
 6. Maintain short conversation memory
 
 -----------------------------------------
+🛒 CATALOGUE & INFO QUERIES (CRITICAL RULES)
+-----------------------------------------
+- NEVER output a 'domain' or 'service' action for catalog or informational queries! Return ONLY the 'chat' field.
+- ALWAYS style your catalog responses beautifully using HTML tags! Use <b> for bolding titles, <br> for new lines, and nested <ul>/<li> for lists.
+- If the user asks "show catalogue", do NOT list all products. First, elegantly list the BRANDS.
+- Once they select a brand, list its PRODUCTS. If they select a product, tightly list its SPECS and TYPES natively using HTML.
+
+-----------------------------------------
 🎯 CONTEXT AWARE INTELLIGENCE
 -----------------------------------------
 
@@ -636,7 +644,8 @@ async function executeCmds(cmds, reqEntities) {
       if (!c.domain) { continue; }
     }
     
-    if (c.chat && !c.domain && !c.learn) { results.push({ chat: c.chat }); continue; }
+    if (c.chat && !c.domain && !c.learn) { results.push({ chat: c.chat, isHtml: true }); continue; }
+    if (!c.domain || !c.service) { continue; }
     
     const eid = c.data?.entity_id;
     const ent = reqEntities.find(e => e.entity_id === eid);
@@ -1265,7 +1274,7 @@ const server = http.createServer(async (req, res) => {
           }
           if (outputs.length > 0) return endChat({ chat: outputs.join('\n') });
           
-          return endChat({ chat: Array.isArray(parsed) ? (parsed[0]?.chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
+          return endChat({ chat: Array.isArray(parsed) ? (parsed[0]?.chat || "Consider it done boss!") : (parsed.chat || "Done boss!"), isHtml: true });
         }
       } catch (e) {
         return endChat({ chat: `Ran into an issue boss: ${e.message}` });
