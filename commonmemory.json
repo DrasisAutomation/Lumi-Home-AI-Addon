@@ -6,6 +6,362 @@
   "behavior": "AI personality control",
   "memory_rules": "Future learning system control",
   "catalog": {
-    "products": []
+    "products": [
+      {
+        "type": [
+          {
+            "specs": {
+              "connectivity": "WiFi",
+              "power": "5V"
+            },
+            "id": "basic",
+            "name": "Lumi Processor Basic",
+            "features": "Basic automation, WiFi control",
+            "description": "Entry-level automation processor"
+          },
+          {
+            "specs": {
+              "connectivity": "WiFi + Zigbee",
+              "power": "5V",
+              "integration": "Home Assistant"
+            },
+            "id": "pro",
+            "name": "Lumi Processor Pro",
+            "features": "AI automation, Voice control, Zigbee + WiFi",
+            "description": "Advanced AI-powered processor"
+          }
+        ],
+        "id": "processor",
+        "name": "Lumi Processor",
+        "category": "home_automation "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "screen": "5 inch",
+              "power": "220V"
+            },
+            "id": "5inch",
+            "name": "Smart Panel 5-inch",
+            "features": "Touch UI, Wall mount"
+          },
+          {
+            "specs": {
+              "screen": "7 inch",
+              "power": "220V"
+            },
+            "id": "7inch",
+            "name": "Smart Panel 7-inch",
+            "features": "Premium UI, Larger display"
+          }
+        ],
+        "id": "panel",
+        "name": "Smart Panel",
+        "category": "control "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "range": "5m",
+              "battery": "AAA"
+            },
+            "id": "standard",
+            "name": "Motion Sensor Standard",
+            "features": "Motion detection, Low power"
+          }
+        ],
+        "id": "motion_sensor",
+        "name": "Motion Sensor",
+        "category": "security "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "battery": "CR2032"
+            },
+            "id": "standard",
+            "name": "Door Sensor Standard",
+            "features": "Open/close detection"
+          }
+        ],
+        "id": "door_sensor",
+        "name": "Door Sensor",
+        "category": "security "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "power": "9W",
+              "connectivity": "WiFi"
+            },
+            "id": "rgb",
+            "name": "RGB Smart Bulb",
+            "features": "Color changing, App control"
+          }
+        ],
+        "id": "smart_bulb",
+        "name": "Smart Bulb",
+        "category": "lighting "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "voltage": "220V"
+            },
+            "id": "2gang",
+            "name": "2 Gang Switch",
+            "features": "Dual control, Touch panel"
+          }
+        ],
+        "id": "smart_switch",
+        "name": "Smart Switch",
+        "category": "lighting "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "power": "30W"
+            },
+            "id": "standard",
+            "name": "Curtain Motor Standard",
+            "features": "Auto open/close"
+          }
+        ],
+        "id": "curtain_motor",
+        "name": "Curtain Motor",
+        "category": "automation "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "load": "10A"
+            },
+            "id": "wifi",
+            "name": "Smart Plug WiFi",
+            "features": "Remote control, Timer"
+          }
+        ],
+        "id": "smart_plug",
+        "name": "Smart Plug",
+        "category": "power "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "display": "LCD"
+            },
+            "id": "basic",
+            "name": "Thermostat Basic",
+            "features": "Temperature control"
+          }
+        ],
+        "id": "thermostat",
+        "name": "Smart Thermostat",
+        "category": "climate "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "resolution": "1080p"
+            },
+            "id": "indoor",
+            "name": "Indoor Camera",
+            "features": "Night vision, Live stream"
+          }
+        ],
+        "id": "camera",
+        "name": "Security Camera",
+        "category": "security "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "battery": "Rechargeable"
+            },
+            "id": "fingerprint",
+            "name": "Fingerprint Lock",
+            "features": "Biometric access"
+          }
+        ],
+        "id": "door_lock",
+        "name": "Smart Door Lock",
+        "category": "security "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "alarm": "85dB"
+            },
+            "id": "standard",
+            "name": "Smoke Sensor Standard",
+            "features": "Fire detection"
+          }
+        ],
+        "id": "smoke_sensor",
+        "name": "Smoke Sensor",
+        "category": "safety "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "battery": "AAA"
+            },
+            "id": "standard",
+            "name": "Leak Sensor",
+            "features": "Water detection"
+          }
+        ],
+        "id": "water_sensor",
+        "name": "Water Leak Sensor",
+        "category": "safety "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "voltage": "220V"
+            },
+            "id": "wifi",
+            "name": "Smart Fan WiFi",
+            "features": "Speed control, Remote access"
+          }
+        ],
+        "id": "smart_fan",
+        "name": "Smart Ceiling Fan",
+        "category": "climate "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "connectivity": "Zigbee + WiFi"
+            },
+            "id": "zigbee",
+            "name": "Zigbee Gateway",
+            "features": "Device hub"
+          }
+        ],
+        "id": "gateway",
+        "name": "Smart Gateway",
+        "category": "networking "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "length": "5m"
+            },
+            "id": "rgb",
+            "name": "RGB LED Strip",
+            "features": "Flexible lighting"
+          }
+        ],
+        "id": "rgb_strip",
+        "name": "LED Strip",
+        "category": "lighting "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "buttons": "4"
+            },
+            "id": "wall",
+            "name": "Wall Scene Controller",
+            "features": "Scene switching"
+          }
+        ],
+        "id": "scene_controller",
+        "name": "Scene Controller",
+        "category": "control "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "coverage": "300 sqft"
+            },
+            "id": "smart",
+            "name": "Smart Air Purifier",
+            "features": "Air quality monitoring"
+          }
+        ],
+        "id": "air_purifier",
+        "name": "Air Purifier",
+        "category": "climate "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "accuracy": "±1%"
+            },
+            "id": "smart",
+            "name": "Smart Energy Meter",
+            "features": "Power usage tracking"
+          }
+        ],
+        "id": "energy_meter",
+        "name": "Energy Meter",
+        "category": "power "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "resolution": "1080p"
+            },
+            "id": "wifi",
+            "name": "WiFi Doorbell",
+            "features": "Two-way audio"
+          }
+        ],
+        "id": "video_doorbell",
+        "name": "Video Doorbell",
+        "category": "security "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "mic": "Far-field"
+            },
+            "id": "standard",
+            "name": "Voice Assistant Standard",
+            "features": "Voice control, AI interaction"
+          }
+        ],
+        "id": "voice_assistant",
+        "name": "Lumi Voice Assistant",
+        "category": "ai "
+      },
+      {
+        "type": [
+          {
+            "specs": {
+              "sensitivity": "High"
+            },
+            "id": "standard",
+            "name": "Light Sensor Standard",
+            "features": "Brightness detection"
+          }
+        ],
+        "id": "light_sensor",
+        "name": "Ambient Light Sensor",
+        "category": "automation "
+      }
+    ]
   }
 }
