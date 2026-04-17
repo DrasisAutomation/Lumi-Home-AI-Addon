@@ -28,12 +28,14 @@ const HISTORY_FILE = path.join(DIR, 'history.json');
 const SCHEDULE_FILE = path.join(DIR, 'schedule.json');
 const MEMORY_FILE = path.join(DIR, 'memory.json');
 const CHATHISTORY_FILE = path.join(DIR, 'chathistory.json');
+const COMMON_MEMORY_FILE = path.join(DIR, 'commonmemory.json');
 
 // Ensure json files exist
 try { if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(SCHEDULE_FILE)) fs.writeFileSync(SCHEDULE_FILE, '[]'); } catch (_) {}
 try { if (!fs.existsSync(MEMORY_FILE)) fs.writeFileSync(MEMORY_FILE, JSON.stringify({rooms: {}, ac: {}})); } catch (_) {}
 try { if (!fs.existsSync(CHATHISTORY_FILE)) fs.writeFileSync(CHATHISTORY_FILE, '{}'); } catch (_) {}
+try { if (!fs.existsSync(COMMON_MEMORY_FILE)) fs.writeFileSync(COMMON_MEMORY_FILE, JSON.stringify({intents:"", commands:"", devices:"", responses:"", behavior:"", memory_rules:"", catalog:{products:[]}}, null, 2)); } catch (_) {}
 
 // Ensure local audio directory exists
 const LOCAL_AUDIO_PATH = '/config/www/community/images';
@@ -64,6 +66,7 @@ function readJson(fp) {
   catch { 
     if (fp === MEMORY_FILE) return { rooms: {} };
     if (fp === CHATHISTORY_FILE) return {};
+    if (fp === COMMON_MEMORY_FILE) return { catalog: { products: [] } };
     return []; 
   } 
 }
@@ -261,11 +264,17 @@ Recent Daily History:${dailyBreakdown}
 
 function buildPrompt(entsStr, energyStatsStr = "") {
   const mem = readJson(MEMORY_FILE);
+  const commonMem = readJson(COMMON_MEMORY_FILE);
   return `You are Lumi, a smart home AI assistant.
 
 Your owner is "Boss". Always call the user "Boss".
 
 You must behave like a HUMAN assistant, not just execute commands.
+
+-----------------------------------------
+🧠 COMMON MEMORY (RULES & CATALOGUE)
+-----------------------------------------
+${JSON.stringify(commonMem, null, 2)}
 
 -----------------------------------------
 🧠 CORE BEHAVIOR
@@ -404,7 +413,7 @@ SERVICES & ENTITY DOMAINS (CRITICAL RULES):
 light→turn_on(brightness_pct 0-100, color_temp_kelvin 2000-6500 ONLY, rgb_color[r,g,b])/turn_off/toggle
 switch/fan/input_boolean→turn_on/turn_off/toggle (Use this for curtains IF entity starts with switch.)
 cover→open_cover/close_cover/set_cover_position(position 0-100) (Use this for curtains IF entity starts with cover.)
-media_player→media_play/media_pause/volume_set(volume_level 0-1)/play_media(media_content_type="music", media_content_id="search query")
+media_player→media_play/media_pause/volume_set(volume_level 0-1)
 climate→set_temperature(temperature)/set_hvac_mode (If exact AC degree switch not in memory)
 scene/script→turn_on
 
@@ -456,18 +465,6 @@ AC SWITCH (If learned AC entity starts with switch. or light.):
     "entity_id":"switch.home_theater_ac_off"
   },
   "chat":"Done boss, triggered the AC switch."
-}
-
-PLAY MEDIA (When asked to play a song or movie on a speaker):
-{
-  "domain":"media_player",
-  "service":"play_media",
-  "data":{
-    "entity_id":"media_player.speaker_entity",
-    "media_content_type":"music",
-    "media_content_id":"<song name> from <movie name>"
-  },
-  "chat":"Playing it right away boss!"
 }
 
 MULTIPLE ITEMS (Including Actions & Learning):
@@ -576,6 +573,24 @@ async function parseNL(txt, entsStr, sid) {
 async function executeCmds(cmds, reqEntities) {
   let results = [];
   cmds = Array.isArray(cmds) ? cmds : [cmds];
+  
+  let normalizedCmds = [];
+  for (const c of cmds) {
+    if (c.data && Array.isArray(c.data.entity_id)) {
+      for (const id of c.data.entity_id) {
+        normalizedCmds.push({ ...c, data: { ...c.data, entity_id: id } });
+      }
+    } else if (c.data && typeof c.data.entity_id === 'string' && c.data.entity_id.includes(',')) {
+      const ids = c.data.entity_id.split(',').map(s => s.trim());
+      for (const id of ids) {
+         normalizedCmds.push({ ...c, data: { ...c.data, entity_id: id } });
+      }
+    } else {
+      normalizedCmds.push(c);
+    }
+  }
+  cmds = normalizedCmds;
+
   for (const c of cmds) {
     if (c.error) { results.push({ err: c.error }); continue; }
     
@@ -986,6 +1001,107 @@ const server = http.createServer(async (req, res) => {
             return replyJSON(res, data);
         };
 
+        if (text && text.match(/^(ADD_CATALOG|ADD_PRODUCT|ADD_TYPE|REMOVE_PRODUCT|REMOVE_TYPE)/)) {
+           try {
+              let memory = readJson(COMMON_MEMORY_FILE);
+              if (!memory.catalog) memory.catalog = { products: [] };
+              if (!Array.isArray(memory.catalog.products)) memory.catalog.products = [];
+
+              let typeMatch = text.match(/^(ADD_CATALOG|ADD_PRODUCT|ADD_TYPE|REMOVE_PRODUCT|REMOVE_TYPE)/)[1];
+              
+              if (typeMatch === 'REMOVE_PRODUCT') {
+                 let match = text.match(/product_id:\s*(.+)/i);
+                 if (match) {
+                     memory.catalog.products = memory.catalog.products.filter(p => p.id !== match[1].trim());
+                     writeJson(COMMON_MEMORY_FILE, memory);
+                     return endChat({ chat: `Product ${match[1].trim()} removed from catalogue!` });
+                 }
+              }
+              if (typeMatch === 'REMOVE_TYPE') {
+                 let pMatch = text.match(/product_id:\s*(.+)/i);
+                 let tMatch = text.match(/type_id:\s*(.+)/i);
+                 if (pMatch && tMatch) {
+                     let probj = memory.catalog.products.find(p => p.id === pMatch[1].trim());
+                     if (probj && probj.type) {
+                         probj.type = probj.type.filter(t => t.id !== tMatch[1].trim());
+                         writeJson(COMMON_MEMORY_FILE, memory);
+                         return endChat({ chat: `Type ${tMatch[1].trim()} removed from product ${pMatch[1].trim()}!` });
+                     }
+                 }
+              }
+
+              // Parse custom formatting for ADD_*
+              let currentObj = {};
+              let curProduct = null;
+              let curType = null;
+              let lines = text.split('\n').filter(l => l.trim() !== '');
+
+              for (let i = 1; i < lines.length; i++) {
+                 let line = lines[i];
+                 let ts = line.trim();
+                 if (ts === 'product:') {
+                    curProduct = { type: [] };
+                    if (!currentObj.products) currentObj.products = [];
+                    currentObj.products.push(curProduct);
+                    curType = null;
+                 } else if (ts === 'type:') {
+                    curType = {};
+                    if (curProduct) curProduct.type.push(curType);
+                    else if (!currentObj.type) currentObj.type = curType;
+                 } else {
+                    let colon = ts.indexOf(':');
+                    if (colon !== -1) {
+                       let key = ts.substring(0, colon).trim();
+                       let val = ts.substring(colon+1).trim();
+                       
+                       // Check if next lines are specs
+                       if (!val && i+1 < lines.length && lines[i+1].startsWith('      ')) {
+                           val = {};
+                           while (i+1 < lines.length && lines[i+1].startsWith('      ')) {
+                               i++;
+                               let sl = lines[i].trim();
+                               let sc = sl.indexOf(':');
+                               if (sc !== -1) val[sl.substring(0, sc).trim()] = sl.substring(sc+1).trim();
+                           }
+                       }
+                       
+                       if (curType) curType[key] = val;
+                       else if (curProduct) curProduct[key] = val;
+                       else currentObj[key] = val;
+                    }
+                 }
+              }
+
+              if (typeMatch === 'ADD_CATALOG') {
+                  memory.catalog = { ...memory.catalog, ...currentObj };
+                  writeJson(COMMON_MEMORY_FILE, memory);
+                  return endChat({ chat: "Full CATALOGUE added perfectly boss!" });
+              }
+              if (typeMatch === 'ADD_PRODUCT' && currentObj.products && currentObj.products.length > 0) {
+                  let p = currentObj.products[0];
+                  let idx = memory.catalog.products.findIndex(x => x.id === p.id);
+                  if (idx > -1) memory.catalog.products[idx] = p; else memory.catalog.products.push(p);
+                  writeJson(COMMON_MEMORY_FILE, memory);
+                  return endChat({ chat: `Product ${p.name || p.id} added / updated perfectly!` });
+              }
+              if (typeMatch === 'ADD_TYPE' && currentObj.type) {
+                  let pId = currentObj.product_id;
+                  let probj = memory.catalog.products.find(x => x.id === pId);
+                  if (!probj) {
+                     probj = { id: pId, type: [] };
+                     memory.catalog.products.push(probj);
+                  }
+                  if (!probj.type) probj.type = [];
+                  let tidx = probj.type.findIndex(x => x.id === currentObj.type.id);
+                  if (tidx > -1) probj.type[tidx] = currentObj.type; else probj.type.push(currentObj.type);
+                  writeJson(COMMON_MEMORY_FILE, memory);
+                  return endChat({ chat: `Type ${currentObj.type.name || currentObj.type.id} added to ${pId} perfectly!` });
+              }
+           } catch (e) {
+              return endChat({ chat: "Sorry boss, there was an error parsing that catalogue format: " + e.message });
+           }
+        }
+
         // Follow-up "YES"
         if (q === 'yes' || q === 'yeah' || q === 'yep') {
             if (PENDING_REPEAT) {
@@ -1140,19 +1256,19 @@ const server = http.createServer(async (req, res) => {
 
         if (delayMs > 0) {
           scheduleExecution(delayMs, cmds, entities, niceTime);
-          return replyJSON(res, { chat: `Got it boss, I've scheduled that for ${niceTime}.` });
+          return endChat({ chat: `Got it boss, I've scheduled that for ${niceTime}.` });
         } else {
           const results = await executeCmds(cmds, entities);
           let outputs = [];
           for (let i = 0; i < results.length; i++) {
               if (results[i].err) outputs.push(`${results[i].name} failed: ${results[i].err}`);
           }
-          if (outputs.length > 0) return replyJSON(res, { chat: outputs.join('\n') });
+          if (outputs.length > 0) return endChat({ chat: outputs.join('\n') });
           
-          return replyJSON(res, { chat: Array.isArray(parsed) ? (parsed[0]?.chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
+          return endChat({ chat: Array.isArray(parsed) ? (parsed[0]?.chat || "Consider it done boss!") : (parsed.chat || "Done boss!") });
         }
       } catch (e) {
-        return replyJSON(res, { chat: `Ran into an issue boss: ${e.message}` });
+        return endChat({ chat: `Ran into an issue boss: ${e.message}` });
       }
     });
     return;

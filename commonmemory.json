@@ -1,0 +1,11 @@
+{
+  "intents": "AI behavior rules (your main logic)",
+  "commands": "Strict command system",
+  "devices": "Your Home Assistant mapping (rooms, lights, AC, etc)",
+  "responses": "Reusable replies (better UX)",
+  "behavior": "AI personality control",
+  "memory_rules": "Future learning system control",
+  "catalog": {
+    "products": []
+  }
+}

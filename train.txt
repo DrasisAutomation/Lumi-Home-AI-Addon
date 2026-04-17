@@ -1,0 +1,138 @@
+# Lumi Home AI - Training & Catalogue Guide
+
+This file provides instructions on how to train your AI with custom behavior rules, responses, and how to manage the product catalogue dynamically right from the chat interface!
+
+---
+
+## 🧠 1. Customizing AI Personality & Logic (commonmemory.json)
+
+The `commonmemory.json` file dictates the fundamental thinking process of your Lumi Home AI. You can manually edit the string values to "train" the AI on exact rules. Here is a guide on how to populate each key effectively:
+
+### 🔹 `intents` (AI Behavior & Logic Rules)
+Define how the AI should analyze queries:
+> "Always look for indirect context. If the user says 'I want to watch a movie', immediately trigger the 'movie mode' scene. Do not reply to questions about the weather, inform them you only manage the smart home."
+
+### 🔹 `commands` (Strict Action System)
+Dictate exactly how specific commands or features should be handled natively:
+> "For MEDIA devices, ONLY allow Play, Pause, and Volume Set operations. Never allow track skipping unless specified via entity name."
+
+### 🔹 `devices` (Home Assistant Mapping Rules)
+Teach the AI how to categorize tricky devices or specific prefixes:
+> "If an entity begins with 'input_boolean.ac', always treat it as a switch and trigger 'turn_on' or 'turn_off'. Treat 'binary_sensor' entities as read-only values."
+
+### 🔹 `responses` (Reusable Replies for Better UX)
+Provide standard conversational responses so the AI feels consistent:
+> "- Success: 'Consider it done, Boss!'\n- Follow-up: 'Would you like to adjust anything else?'\n- Error: 'Sorry Boss, the connection to that device failed.'"
+
+### 🔹 `behavior` (AI Personality Control)
+Define the core persona of Lumi:
+> "You are a professional, subservient, highly competent AI butler named Lumi. Speak concisely, with zero fluff. Never use emojis. Call the user 'Boss' exclusively."
+
+### 🔹 `memory_rules` (Future Learning Rules)
+Guide the AI on what it should memorize long-term when interacting:
+> "If the user mentions they like a specific lighting color (like 'warm white'), automatically use the 'learn' parameter to save that preference to the specific room."
+
+*(Any changes made to `commonmemory.json` take effect immediately on the next chat response.)*
+
+---
+
+## 🛒 2. Adding Products to the Catalogue
+
+You can add products straight from the chat interface by using specific template blocks!
+Just paste one of the following templates perfectly into the chat (make sure indentations/newlines are clean):
+
+### 🔹 Option A: Add a Full Catalogue (Brand + Product + Types)
+
+Use this when adding multiple variants for a specific product all at once.
+
+```text
+ADD_CATALOG
+brand_id: lumi
+brand_name: Lumi
+
+product:
+  id: processor
+  name: Lumi Processor
+  category: home_automation
+
+  type:
+    id: basic
+    name: Lumi Processor Basic
+    description: Entry-level automation processor
+    features: Basic automation, WiFi control
+    specs:
+      connectivity: WiFi
+      power: 5V
+
+  type:
+    id: pro
+    name: Lumi Processor Pro
+    description: Advanced AI-powered processor
+    features: AI automation, Voice control, Zigbee + WiFi
+    specs:
+      connectivity: WiFi + Zigbee
+      power: 5V
+      integration: Home Assistant
+```
+
+### 🔹 Option B: Add a Single Product (No complex types)
+
+Use this if you just want to register one standalone device.
+
+```text
+ADD_PRODUCT
+brand_id: lumi
+
+product:
+  id: sensor
+  name: Motion Sensor
+  category: security
+
+  type:
+    id: standard
+    name: Motion Sensor Standard
+    features: Motion detection, Low power
+    specs:
+      range: 5m
+      battery: AAA
+```
+
+### 🔹 Option C: Add Only a Type (Variant) to an Existing Product
+
+Use this when a product (like "processor") already exists, and you're just adding a new variant like "ultra".
+
+```text
+ADD_TYPE
+brand_id: lumi
+product_id: processor
+
+type:
+  id: ultra
+  name: Lumi Processor Ultra
+  description: High-end AI processor
+  features: AI + ML automation, Ultra fast response
+  specs:
+    connectivity: WiFi + Zigbee + BLE
+    power: 5V
+```
+
+---
+
+## ✏️ 3. Removing & Editing Products in Catalogue
+
+If you ever need to remove a product, you can use these chat commands:
+
+### 🔹 Remove a specific Type/Variant
+```text
+REMOVE_TYPE
+product_id: processor
+type_id: basic
+```
+
+### 🔹 Remove an entire Product
+```text
+REMOVE_PRODUCT
+product_id: sensor
+```
+
+*(Note: The AI processes these blocks internally, saving them directly to `commonmemory.json` without executing standard chat actions.)*
