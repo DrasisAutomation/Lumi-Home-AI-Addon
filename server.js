@@ -291,8 +291,10 @@ ${JSON.stringify(commonMem, null, 2)}
 -----------------------------------------
 - NEVER output a 'domain' or 'service' action for catalog or informational queries! Return ONLY the 'chat' field.
 - ALWAYS style your catalog responses beautifully using HTML tags! Use <b> for bolding titles, <br> for new lines, and nested <ul>/<li> for lists.
-- If the user asks "show catalogue", do NOT list all products. First, elegantly list the BRANDS.
-- Once they select a brand, list its PRODUCTS. If they select a product, tightly list its SPECS and TYPES natively using HTML.
+- STRICT NAVIGATION FLOW:
+  1. "show catalogue": ONLY list the available BRANDS. Do NOT show their products yet.
+  2. "show [brand]": ONLY list the available PRODUCTS under that brand. Do NOT show their specs or types yet.
+  3. "show [product]": Tightly list its SPECS and TYPES natively using HTML.
 
 -----------------------------------------
 🎯 CONTEXT AWARE INTELLIGENCE
@@ -1259,7 +1261,7 @@ const server = http.createServer(async (req, res) => {
         // OPENAI NLP
         const aiQuery = delayMs > 0 ? `${cleanedQ} (CRITICAL: User is scheduling this. DO NOT ask for confirmation, output the action JSON immediately.)` : (cleanedQ || "turn on");
         const parsed = await parseNL(aiQuery, entsStr, sid);
-        if (parsed.chat && !parsed.domain && !parsed.learn) return endChat({ chat: parsed.chat });
+        if (parsed.chat && !parsed.domain && !parsed.learn) return endChat({ chat: parsed.chat, isHtml: true });
         
         const cmds = Array.isArray(parsed) ? parsed : [parsed];
 
